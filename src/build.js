@@ -176,6 +176,10 @@ async function buildFile(name) {
   const katexCss = `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">`;
   // Prism theme
   const prismCss = `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">`;
+  // Modern font (Inter)
+  const fontCss = `<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">`;
 
   const docTitle = basename(name, '.web').toUpperCase();
   const tocHtml = buildToc(sections);
@@ -191,6 +195,7 @@ async function buildFile(name) {
 <title>${escapeHtml(docTitle)} — dekweb</title>
 ${katexCss}
 ${prismCss}
+${fontCss}
 <style>${css}</style>
 </head>
 <body>

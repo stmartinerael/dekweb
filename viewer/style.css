@@ -35,11 +35,36 @@
   --link:       #1a4480;
   --link-hover: #c14a09;
   --code-bg:    #f5f3ee;
-  --font-body:  'Computer Modern Serif', 'Latin Modern Roman', 'Times New Roman', Times, serif;
-  --font-mono:  'Computer Modern Typewriter', 'Latin Modern Mono', 'Courier New', Courier, monospace;
+  --font-body:  'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono:  'JetBrains Mono', 'Fira Code', 'Computer Modern Typewriter', monospace;
   --text-w:     38em;     /* prose column width — like the PDF (≈5.5in / 11pt ≈ 38em) */
   --code-w:     42em;     /* code block max width */
   --sidebar-w:  240px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink:        #839496; /* base0 */
+    --ink-light:  #586e75; /* base01 */
+    --paper:      #002b36; /* base03 */
+    --paper-soft: #073642; /* base02 */
+    --rule:       #073642; /* base02 */
+    --link:       #268bd2; /* blue */
+    --link-hover: #cb4b16; /* orange */
+    --code-bg:    #00212b; /* slightly darker than base03 */
+  }
+
+  /* Override Prism tokens for Solarized Dark */
+  pre.code-block .token.comment    { color: #586e75; }
+  pre.code-block .token.keyword    { color: #859900; }
+  pre.code-block .token.string     { color: #2aa198; }
+  pre.code-block .token.number     { color: #d33682; }
+  pre.code-block .token.operator   { color: #93a1a1; }
+  pre.code-block .token.punctuation{ color: #93a1a1; }
+  pre.code-block .token.function   { color: #268bd2; }
+
+  /* Adjust KaTeX for dark mode */
+  .katex { color: var(--ink); }
 }
 
 html { font-size: 16px; scroll-behavior: smooth; }
@@ -253,7 +278,7 @@ body {
 .tex-prose strong { font-weight: bold; }
 .tex-prose em { font-style: italic; }
 
-.tex-prose em.slanted { font-style: normal; font-family: 'Computer Modern Serif', serif; font-variant-caps: normal; transform: skewX(-12deg); display: inline-block; }
+.tex-prose em.slanted { font-style: normal; font-family: var(--font-body); font-variant-caps: normal; transform: skewX(-12deg); display: inline-block; }
 
 .item {
   display: flex;
