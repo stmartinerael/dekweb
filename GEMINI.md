@@ -50,5 +50,6 @@ These are expected as the converter maps TeX-style line breaks to HTML, and some
 - **Branching Policy**: Always work in a feature branch (e.g., `fix/name-of-fix`). At the start of each new task, check if the current branch has been merged into `main`. If it has, or if starting a new independent task, switch to `main` and create a new branch from there. **If the current branch is unmerged, alert the user before switching or starting new work.**
 - **Bug Fixes**: Follow a **Reproduction-first** approach. Create a standalone reproduction script (e.g., `reproduce_issue.js`) that confirms the bug before implementing the fix. Verify the fix with the script and then delete it before committing.
 - **Testing**: Employs the built-in Node.js test runner (`node:test`). Tests are located in `test/` and focus heavily on parser accuracy and cross-referencing logic.
-- **Styling**: The viewer uses modern Vanilla CSS with a focus on readability and a "TeX-like" aesthetic.
+- **Styling**: The viewer uses modern Vanilla CSS with a focus on readability. It supports both light mode and a **Solarized Dark** theme (via `prefers-color-scheme`).
+- **Typography**: Uses the **Inter** sans-serif font for body text and modern monospace fonts for code, providing a polished look in modern web browsers while maintaining the structural integrity of the original WEB format.
 - **Parsing**: The parser is hand-rolled to handle the unique interleaved structure of WEB files.

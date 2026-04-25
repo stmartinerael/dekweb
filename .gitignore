@@ -2,3 +2,8 @@ node_modules/
 web-sources/
 output/
 *.log
+*.pdf
+*.tex
+*.idx
+*.scn
+CONTENTS.tex
