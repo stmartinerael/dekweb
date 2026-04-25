@@ -8,3 +8,9 @@ output/
 *.scn
 GEMINI.md
 CONTENTS.tex
+
+# gemini-cli settings
+.gemini/
+
+# GitHub App credentials
+gha-creds-*.json
