@@ -28,6 +28,13 @@ function renderMath(math, display, placeholders) {
       const code = m[1].replace(/([&%#_$])/g, '\\$1');
       return `\\texttt{${code}} `;
     }
+    // Handle italics (identifiers)
+    const it = p.match(/<em>(.*?)<\/em>/);
+    if (it) return `\\textit{${it[1]}} `;
+    // Handle bold (reserved words)
+    const bf = p.match(/<strong>(.*?)<\/strong>/);
+    if (bf) return `\\textbf{${bf[1]}} `;
+
     return p;
   });
 
@@ -39,6 +46,7 @@ function renderMath(math, display, placeholders) {
         "\\.": "\\texttt{#1}",
         "\\&": "\\textbf{#1}",
         "\\|": "\\textit{#1}",
+        "\\\\": "\\textit{#1}",
         "\\PB": "\\text{#1}",
         "\\sq": "\\square",
         "\\hang": "",
@@ -76,11 +84,35 @@ export function texToHtml(tex) {
   s = s.replace(/\|([^|]+)\|/g, (_, code) => pushPlaceholder(`<code>${escapeHtml(code)}</code>`));
 
   // --- WEB font commands ---
-  s = s.replace(/\\\.{([^}]*)}/g, (_, t) => pushPlaceholder(`<code>${escapeHtml(t)}</code>`));
+  // Handle \. specifically because of internal redefinitions
+  s = s.replace(/\\\.{([^}]*)}/g, (_, t) => {
+    let content = t;
+    // Inside typewriter, some macros are redefined to be literal characters
+    content = content.replace(/\\\\/g, '\\')
+                     .replace(/\\'/g, "'")
+                     .replace(/\\`/g, "`")
+                     .replace(/\\{/g, "{")
+                     .replace(/\\}/g, "}")
+                     .replace(/\\~/g, "~")
+                     .replace(/\\ /g, " ")
+                     .replace(/\\_/g, "_")
+                     .replace(/\\&/g, "&");
+    return pushPlaceholder(`<code>${escapeHtml(content)}</code>`);
+  });
   s = s.replace(/\\\.([a-zA-Z0-9_])/g, (_, c) => pushPlaceholder(`<code>${escapeHtml(c)}</code>`));
+
   s = s.replace(/\\&{([^}]*)}/g, (_, t) => pushPlaceholder(`<strong>${escapeHtml(t)}</strong>`));
   s = s.replace(/\\&([a-zA-Z])/g, (_, c) => pushPlaceholder(`<strong>${escapeHtml(c)}</strong>`));
+
+  // \\ and \| identifiers (italics)
+  s = s.replace(/\\\\{([^}]*)}/g, (_, t) => pushPlaceholder(`<em>${escapeHtml(t)}</em>`));
   s = s.replace(/\\\|{([^}]*)}/g, (_, t) => pushPlaceholder(`<em>${escapeHtml(t)}</em>`));
+  s = s.replace(/\\\|([a-zA-Z])/g, (_, c) => pushPlaceholder(`<em>${escapeHtml(c)}</em>`));
+
+  s = s.replace(/\\(sc|mc){([^}]*)}/g, (_, k, t) => pushPlaceholder(`<span class="smallcaps">${escapeHtml(t)}</span>`));
+  s = s.replace(/\{\\(sc|mc|mc)\s+([^}]*)\}/g, (_, k, t) => pushPlaceholder(`<span class="smallcaps">${escapeHtml(t)}</span>`));
+
+  s = s.replace(/\\={([^}]*)}/g, (_, t) => pushPlaceholder(`<span class="verbatim-box"><code>${escapeHtml(t)}</code></span>`));
 
   s = s.replace(/\{\\tt\s+([^}]*)\}/g, (_, t) => pushPlaceholder(`<code>${escapeHtml(t)}</code>`));
   s = s.replace(/\{\\it\s+([^}]*)\}/g, (_, t) => pushPlaceholder(`<em>${escapeHtml(t)}</em>`));
@@ -93,7 +125,7 @@ export function texToHtml(tex) {
 
   // --- Escaped TeX characters ---
   s = s.replace(/\\{/g, '\x01').replace(/\\}/g, '\x02');
-  s = s.replace(/\\([&%#_$])/g, '$1');
+  s = s.replace(/\\([%#_$])/g, (_, c) => `<code>${c}</code>`);
 
   // --- Quotes ---
   s = s.replace(/``/g, '&ldquo;').replace(/''/g, '&rdquo;');
@@ -104,6 +136,7 @@ export function texToHtml(tex) {
   s = s.replace(/--/g, '&ndash;');
 
   // --- WEB-specific TeX macros ---
+  s = s.replace(/\\\^(?!\{)/g, '^');
   s = s.replace(/\\\^\{([^}]*)\}/g, (_, t) => `<sup>${escapeHtml(t)}</sup>`);
   s = s.replace(/_\{([^}]*)\}/g, (_, t) => `<sub>${escapeHtml(t)}</sub>`);
   s = s.replace(/\\<([^>]*)>/g, (_, t) => `&lang;<em>${escapeHtml(t)}</em>&rang;`);

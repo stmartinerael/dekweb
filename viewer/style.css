@@ -416,6 +416,14 @@ pre.code-block .token.function   { color: #1a4480; }
 .skip-big   { height: 1.2rem; }
 .tex-unknown { color: #c00; font-style: italic; font-family: var(--font-mono); font-size: 0.85em; }
 
+.verbatim-box {
+  display: inline-block;
+  border: 1px solid var(--ink);
+  padding: 0 2px;
+  margin: 0 2px;
+  line-height: 1;
+}
+
 /* ── Reporting UI ────────────────────────────────────────────────────────── */
 #report-btn {
   position: absolute;
