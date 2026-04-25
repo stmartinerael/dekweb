@@ -158,14 +158,40 @@ function buildToc(sections) {
         : `<span class="sec-num">§${s.number}</span>`;
       return `<li><a href="#s${s.number}">${lead}<span class="toc-label">${label}</span></a></li>`;
     });
+  // Add Index link
+  items.push(`<li><a href="#index"><span class="sec-num">Index</span><span class="toc-label">Alphabetical Index</span></a></li>`);
   return `<ul id="toc">\n${items.join('\n')}\n</ul>`;
+}
+
+/**
+ * Render the alphabetical index.
+ */
+function renderIndex(indexMap) {
+  const sortedIds = Array.from(indexMap.keys()).sort((a, b) => 
+    a.toLowerCase().localeCompare(b.toLowerCase())
+  );
+
+  let html = '<div id="index" class="section starred">\n';
+  html += '<div class="section-num">Index</div>\n';
+  html += '<div class="section-body">\n';
+  html += '<div class="section-title">Alphabetical Index.</div>\n';
+  html += '<ul class="index-list">\n';
+
+  for (const id of sortedIds) {
+    const nums = indexMap.get(id).sort((a, b) => a - b);
+    const links = nums.map(n => `<a href="#s${n}">${n}</a>`).join(', ');
+    html += `<li><span class="index-id">${escapeHtml(id)}</span>: ${links}</li>\n`;
+  }
+
+  html += '</ul>\n</div>\n</div>\n';
+  return html;
 }
 
 async function buildFile(name) {
   const src = await readFile(join(ROOT, 'web-sources', name), 'utf8');
   console.log(`Parsing ${name}...`);
-  const { sections, chunkDefs } = parse(src);
-  console.log(`  ${sections.length} sections, ${chunkDefs.size} chunk definitions`);
+  const { sections, chunkDefs, indexMap } = parse(src);
+  console.log(`  ${sections.length} sections, ${chunkDefs.size} chunk definitions, ${indexMap.size} index entries`);
 
   const css = await readFile(join(ROOT, 'viewer', 'style.css'), 'utf8');
   const js = await readFile(join(ROOT, 'viewer', 'viewer.js'), 'utf8');
@@ -184,6 +210,7 @@ async function buildFile(name) {
 
   console.log(`  Rendering sections...`);
   const sectionsHtml = sections.map(s => renderSection(s, chunkDefs)).join('\n');
+  const indexHtml = renderIndex(indexMap);
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -211,6 +238,7 @@ ${fontCss}
     <div class="doc-subtitle">Knuth's WEB &mdash; ${sections.length} sections</div>
   </header>
   ${sectionsHtml}
+  ${indexHtml}
 </main>
 <script>${js}</script>
 </body>

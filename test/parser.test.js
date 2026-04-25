@@ -227,3 +227,30 @@ test('double-starred section @** treated like starred @*', () => {
   assert.equal(s[0].starred, true);
   assert.equal(s[0].title, 'Big Title');
 });
+
+// ── Indexing ──────────────────────────────────────────────────────────────────
+
+test('manual index entries are collected', () => {
+  const src = '@* Title. See @^system dependencies@> and @.typewriter@>.';
+  const { indexMap } = parse(src);
+  assert.ok(indexMap.has('system dependencies'));
+  assert.ok(indexMap.has('typewriter'));
+  assert.deepEqual(indexMap.get('system dependencies'), [1]);
+});
+
+test('Pascal identifiers are indexed', () => {
+  const src = '@ @p procedure PrintBanner; begin banner := 1; end;';
+  const { indexMap } = parse(src);
+  assert.ok(indexMap.has('PrintBanner'));
+  assert.ok(indexMap.has('banner'));
+  // procedure, begin, end are keywords and should NOT be indexed
+  assert.ok(!indexMap.has('procedure'));
+  assert.ok(!indexMap.has('begin'));
+});
+
+test('macro names and chunk names are indexed', () => {
+  const src = '@ @d max_val==100\n@<My Chunk@>=x:=1;';
+  const { indexMap } = parse(src);
+  assert.ok(indexMap.has('max_val'));
+  assert.ok(indexMap.has('My Chunk'));
+});
