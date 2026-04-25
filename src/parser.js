@@ -69,13 +69,31 @@ function collectRefs(code) {
  */
 function parseDef(kind, text) {
   // @d name==value  or  @d name=value  or  @d name value
-  // The conventional WEB form is: identifier followed by ==
-  const eqq = text.indexOf('==');
-  if (eqq !== -1) {
-    return { kind, name: text.slice(0, eqq).trim(), value: text.slice(eqq + 2) };
+  // Conventional WEB uses == but many use =.
+  let splitIdx = text.indexOf('==');
+  let sepLen = 2;
+  if (splitIdx === -1) {
+    splitIdx = text.indexOf('=');
+    sepLen = 1;
   }
-  // Fallback: treat whole thing as value
-  return { kind, name: '', value: text };
+
+  if (splitIdx !== -1) {
+    return {
+      kind,
+      name: text.slice(0, splitIdx).trim(),
+      value: text.slice(splitIdx + sepLen).trim()
+    };
+  }
+  // Fallback: split at first space
+  const firstSpace = text.trim().indexOf(' ');
+  if (firstSpace !== -1) {
+    return {
+      kind,
+      name: text.trim().slice(0, firstSpace),
+      value: text.trim().slice(firstSpace + 1)
+    };
+  }
+  return { kind, name: text.trim(), value: '' };
 }
 
 /**
@@ -158,9 +176,19 @@ export function parse(src) {
     const { starred, raw } = sectionBlobs[idx];
 
     let title = '';
+    let partNumber = null;
     let body = raw;
 
     if (starred) {
+      // Knuth's WEB convention: starred titles often start with \[N]
+      // marking the major part number (Part 1, Part 2, etc).
+      // Parse and extract this prefix before scanning for the title-end period.
+      const partMatch = body.match(/^\s*\\\[(\d+)\]\s*/);
+      if (partMatch) {
+        partNumber = Number(partMatch[1]);
+        body = body.slice(partMatch[0].length);
+      }
+
       // Title is text up to the first sentence-ending period.
       // A period is sentence-ending when the preceding word has ≥ 2 characters
       // (to skip single-letter abbreviations like D. or E.).
@@ -325,7 +353,25 @@ export function parse(src) {
       chunkRefs.get(ref).push(num);
     }
 
-    sections.push({ number: num, starred, title, tex, defs, code, chunkName, refs });
+    // Strip WEB index control codes from prose — they're invisible markup
+    // for the index, not body content. Patterns:
+    //   @^...@>     roman index entry
+    //   @.text@>    typewriter index entry
+    //   @:sort}{e@> user-defined index sort key
+    //   @!          force-index marker (when adjacent to @^/@:/@./@<)
+    const cleanTex = tex
+      .replace(/@\^[^@]*@>/g, '')
+      .replace(/@\.[^@]*@>/g, '')
+      .replace(/@:[^@]*@>/g, '')
+      .replace(/@!(?=\s*@[\^.:])/g, '')
+      .replace(/@!(?=\s*@<)/g, '')
+      // \(...) and \9... are sort keys: definitions discard their args
+      .replace(/\\\([^)]*\)/g, '')
+      .replace(/\\9\S*/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+
+    sections.push({ number: num, starred, partNumber, title, tex: cleanTex, defs, code, chunkName, refs });
   }
 
   return { sections, chunkDefs, chunkRefs };

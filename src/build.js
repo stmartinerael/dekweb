@@ -44,9 +44,18 @@ function renderCode(raw, chunkDefs) {
   // Strip other WEB control codes that don't translate to code
   processed = processed
     .replace(/@[@/|#+;!]/g, m => m === '@@' ? '@' : '')
-    .replace(/@=[^@]*@>/g, m => m.slice(2, -2)) // @=verbatim@> → verbatim
-    .replace(/@'[^']*'/g, m => m)                // @'x' character literal — keep
-    .replace(/@"[0-9a-fA-F]*/g, m => m);         // @"hex — keep
+    .replace(/@t[\s\S]*?@>/g, '')                  // @t... @> format control
+    .replace(/@h/g, '')                            // @h (header)
+    .replace(/@&/g, '')                            // @& (concatenate)
+    .replace(/@\+/g, '')                           // @+ (indent)
+    .replace(/@;/g, '')                            // @; (semicolon)
+    .replace(/@\./g, '')                           // @. (typewriter)
+    .replace(/@:/g, '')                            // @: (index)
+    .replace(/@\^/g, '')                           // @^ (index)
+    .replace(/@=[^@]*@>/g, m => m.slice(2, -2))   // @=verbatim@> → verbatim
+    .replace(/@'[^']*'/g, m => m)                  // @'x' character literal
+    .replace(/@"0-9a-fA-F]*/g, m => m);           // @"hex
+
 
   // Prism highlight
   let highlighted;
@@ -72,21 +81,35 @@ function renderCode(raw, chunkDefs) {
  * Render a single section as an HTML string.
  */
 function renderSection(sec, chunkDefs) {
-  const { number, starred, title, tex, defs, code, chunkName } = sec;
+  const { number, starred, partNumber, title, tex, defs, code, chunkName } = sec;
 
   const id = `s${number}`;
   const cls = starred ? 'section starred' : 'section';
 
-  const numHtml = `<div class="section-num"><a href="#${id}">${number}</a></div>`;
+  const numHtml = `<div class="section-num"><a href="#${id}">§${number}</a></div>`;
 
   let bodyHtml = '';
 
   if (starred && title) {
-    bodyHtml += `<div class="section-title">${escapeHtml(title)}</div>\n`;
+    const partLabel = partNumber != null
+      ? `<span class="part-label">Part ${partNumber}</span>`
+      : '';
+    bodyHtml += `<div class="section-title">${partLabel}${escapeHtml(title)}.</div>\n`;
   }
 
-  if (tex) {
-    bodyHtml += `<div class="tex-prose">${texToHtml(tex)}</div>\n`;
+  if (tex || (!starred && !defs.length && !code.trim())) {
+    // Render prose. For unstarred sections we prefix a bold marker like the PDF.
+    const proseHtml = texToHtml(tex);
+    if (!starred) {
+      // Insert bold "N." marker at the start of the first paragraph
+      const withMarker = proseHtml.replace(
+        /^<p>/,
+        `<p><span class="section-marker">${number}.</span>`
+      );
+      bodyHtml += `<div class="tex-prose">${withMarker}</div>\n`;
+    } else {
+      bodyHtml += `<div class="tex-prose">${proseHtml}</div>\n`;
+    }
   }
 
   if (defs.length) {
@@ -132,7 +155,10 @@ function buildToc(sections) {
     .filter(s => s.starred)
     .map(s => {
       const label = s.title ? escapeHtml(s.title) : `Section ${s.number}`;
-      return `<li><a href="#s${s.number}"><span class="sec-num">§${s.number}</span>${label}</a></li>`;
+      const lead = s.partNumber != null
+        ? `<span class="part-num">Part ${s.partNumber}</span>`
+        : `<span class="sec-num">§${s.number}</span>`;
+      return `<li><a href="#s${s.number}">${lead}<span class="toc-label">${label}</span></a></li>`;
     });
   return `<ul id="toc">\n${items.join('\n')}\n</ul>`;
 }
@@ -178,8 +204,8 @@ ${prismCss}
 </nav>
 <main id="main">
   <header id="doc-header">
-    <h1>${escapeHtml(docTitle)}</h1>
-    <div class="subtitle">Knuth's WEB — ${sections.length} sections</div>
+    <div class="doc-title">${escapeHtml(docTitle)}</div>
+    <div class="doc-subtitle">Knuth's WEB &mdash; ${sections.length} sections</div>
   </header>
   ${sectionsHtml}
 </main>
