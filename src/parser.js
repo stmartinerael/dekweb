@@ -353,49 +353,60 @@ export function parse(src) {
 
     // --- Collect index entries ---
 
-    // 1. Manual index entries (@^, @., @:) from both TeX and code
+    const keywords = new Set([
+      'and', 'array', 'begin', 'case', 'const', 'div', 'do', 'downto', 'else', 'end',
+      'file', 'for', 'function', 'goto', 'if', 'in', 'label', 'mod', 'nil', 'not',
+      'of', 'or', 'packed', 'procedure', 'program', 'record', 'repeat', 'set',
+      'then', 'to', 'type', 'until', 'var', 'while', 'with'
+    ]);
+
+    const collectIdentifiers = (text) => {
+      if (!text) return;
+      // Strip @!, @/, @#, @+, @;, @, and other control codes that might interfere with word boundaries
+      const clean = text.replace(/@([!/#\+\;,])/g, '');
+      const re = /\b[a-zA-Z][a-zA-Z0-9_]*\b/g;
+      let m;
+      while ((m = re.exec(clean)) !== null) {
+        const id = m[0].toLowerCase();
+        if (!keywords.has(id) && id.length > 2) {
+          addIndex(m[0], num);
+        }
+      }
+    };
+
+    // 1. Manual index entries (@^, @., @:) from the entire section
     const collectManual = (text) => {
       const re = /@([\^.:])([^@]+)@>/g;
       let m;
       while ((m = re.exec(text)) !== null) {
-        const kind = m[1];
-        const val = m[2].trim();
-        // For simplicity, we just index the raw text. 
-        // weave handles @. differently (typewriter), but here we consolidated them.
-        addIndex(val, num);
+        addIndex(m[2].trim(), num);
       }
     };
-    collectManual(tex);
-    collectManual(code);
-    for (const d of defs) collectManual(d.value);
+    collectManual(body);
 
-    // 2. Pascal identifiers from code
-    const collectIdentifiers = (text) => {
-      // Basic Pascal identifier regex
-      const re = /\b[a-zA-Z][a-zA-Z0-9_]*\b/g;
-      const keywords = new Set([
-        'and', 'array', 'begin', 'case', 'const', 'div', 'do', 'downto', 'else', 'end',
-        'file', 'for', 'function', 'goto', 'if', 'in', 'label', 'mod', 'nil', 'not',
-        'of', 'or', 'packed', 'procedure', 'program', 'record', 'repeat', 'set',
-        'then', 'to', 'type', 'until', 'var', 'while', 'with'
-      ]);
+    // 2. Identifiers from |...| snippets in the entire body
+    const collectSnippets = (text) => {
+      const re = /\|([^|]+)\|/g;
       let m;
       while ((m = re.exec(text)) !== null) {
-        const id = m[0].toLowerCase();
-        if (!keywords.has(id) && id.length > 2) {
-          addIndex(m[0], num); // Use original casing for display? No, weave often case-folds.
-          // Knuth's Pascal is mostly case-insensitive.
-        }
+        collectIdentifiers(m[1]);
       }
     };
-    collectIdentifiers(code);
+    collectSnippets(body);
 
-    // 3. Macro names from @d
+    // 3. Pascal identifiers from code blocks and macro values
+    collectIdentifiers(code);
+    for (const d of defs) collectIdentifiers(d.value);
+
+    // 4. Macro names from @d (cleaned)
     for (const d of defs) {
-      if (d.kind === 'd') addIndex(d.name, num);
+      if (d.kind === 'd' && d.name) {
+        const cleanName = d.name.replace(/\([^)]*\)/, '').trim();
+        if (cleanName) addIndex(cleanName, num);
+      }
     }
 
-    // 4. Chunk names
+    // 5. Chunk names
     if (chunkName) addIndex(chunkName, num);
 
 
