@@ -55,6 +55,17 @@ function renderMath(math, display, placeholders) {
         "\\glob": "\\text{\\color{#cc0000}glob}",
         "\\gglob": "\\text{\\color{#cc0000}glob}",
         "\\dots": "\\ldots",
+        "\\to": "\\mathrel{.\\,.}",
+        "\\G": "\\ge",
+        "\\I": "\\ne",
+        "\\K": "\\gets",
+        "\\L": "\\le",
+        "\\R": "\\lnot",
+        "\\S": "\\equiv",
+        "\\V": "\\lor",
+        "\\W": "\\land",
+        "\\H": "\\texttt{#1}",
+        "\\O": "\\texttt{#1}",
       }
     });
   } catch {
@@ -89,14 +100,24 @@ export function texToHtml(tex) {
     let content = t;
     // Inside typewriter, some macros are redefined to be literal characters
     content = content.replace(/\\\\/g, '\\')
+                     .replace(/\\BS/g, '\\')
                      .replace(/\\'/g, "'")
+                     .replace(/\\RQ/g, "'")
                      .replace(/\\`/g, "`")
+                     .replace(/\\LQ/g, "`")
                      .replace(/\\{/g, "{")
+                     .replace(/\\LB/g, "{")
                      .replace(/\\}/g, "}")
+                     .replace(/\\RB/g, "}")
                      .replace(/\\~/g, "~")
+                     .replace(/\\TL/g, "~")
                      .replace(/\\ /g, " ")
+                     .replace(/\\SP/g, " ")
                      .replace(/\\_/g, "_")
-                     .replace(/\\&/g, "&");
+                     .replace(/\\UL/g, "_")
+                     .replace(/\\&/g, "&")
+                     .replace(/\\AM/g, "&")
+                     .replace(/\\AT/g, "@");
     return pushPlaceholder(`<code>${escapeHtml(content)}</code>`);
   });
   s = s.replace(/\\\.([a-zA-Z0-9_])/g, (_, c) => pushPlaceholder(`<code>${escapeHtml(c)}</code>`));
@@ -156,9 +177,12 @@ export function texToHtml(tex) {
   s = s.replace(/\\ldots(?!\w)/g, '&hellip;');
   s = s.replace(/\\section(?!\w)/g, '&sect;');
   s = s.replace(/\\g?glob(?!\w)/g, 'glob');
+  s = s.replace(/\\[AU]s?\b/g, ''); // Skip cross-ref notes like \A, \As, \U, \Us
+  s = s.replace(/\\Y\b/g, '</p><p>');
 
   // Paragraph breaks
   s = s.replace(/\n[ \t]*\n+/g, '</p><p>');
+
 
   // Spacing and structural macros
   s = s.replace(/\\\\(?!\w)/g, '<br>');
