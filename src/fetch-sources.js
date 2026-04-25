@@ -19,6 +19,10 @@ const SOURCES = [
     name: 'tex.web',
     url: 'https://tug.ctan.org/systems/knuth/dist/tex/tex.web',
   },
+  {
+    name: 'webmac.tex',
+    url: 'https://mirror.ctan.org/systems/knuth/dist/lib/webmac.tex',
+  },
 ];
 
 async function exists(path) {
