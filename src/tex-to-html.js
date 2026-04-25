@@ -19,7 +19,19 @@ function escapeHtml(s) {
  */
 function renderMath(math, display) {
   try {
-    return katex.renderToString(math, { displayMode: display, throwOnError: false });
+    return katex.renderToString(math, {
+      displayMode: display,
+      throwOnError: false,
+      macros: {
+        "\\.": "\\texttt{#1}",
+        "\\&": "\\textbf{#1}",
+        "\\|": "\\textit{#1}",
+        "\\PB": "\\text{#1}",
+        "\\sq": "\\square",
+        "\\hang": "",
+        "\\noindent": "",
+      }
+    });
   } catch {
     return `<code class="math-fallback">${escapeHtml(math)}</code>`;
   }
@@ -33,71 +45,87 @@ export function texToHtml(tex) {
   if (!tex) return '';
 
   let s = tex;
+  const placeholders = [];
+  function pushPlaceholder(html) {
+    const id = `\x07P${placeholders.length}\x07`;
+    placeholders.push(html);
+    return id;
+  }
 
-  // --- WEB font commands: process BEFORE math so they don't confuse KaTeX ---
-  // \.{text} → <code>text</code>  (typewriter / identifier)
+  // --- WEB control codes that appear in prose ---
+  s = s.replace(/@!/g, '');
+
+  // --- |...| Pascal code snippets in prose ---
+  s = s.replace(/\|([^|]+)\|/g, (_, code) => pushPlaceholder(`<code>${escapeHtml(code)}</code>`));
+
+  // --- Math: $$...$$ display, $...$ inline ---
+  s = s.replace(/\$\$([\s\S]*?)\$\$/g, (_, m) => pushPlaceholder(renderMath(m, true)));
+  s = s.replace(/\$((?:[^$\\]|\\.)+?)\$/g, (_, m) => pushPlaceholder(renderMath(m, false)));
+
+  // --- WEB font commands ---
   s = s.replace(/\\\.{([^}]*)}/g, (_, t) => `<code>${escapeHtml(t)}</code>`);
-  // \&{text} → <strong>text</strong>
+  s = s.replace(/\\\.([a-zA-Z0-9_])/g, (_, c) => `<code>${escapeHtml(c)}</code>`);
   s = s.replace(/\\&{([^}]*)}/g, (_, t) => `<strong>${escapeHtml(t)}</strong>`);
-  // \|{text} → <em>text</em>
+  s = s.replace(/\\&([a-zA-Z])/g, (_, c) => `<strong>${escapeHtml(c)}</strong>`);
   s = s.replace(/\\\|{([^}]*)}/g, (_, t) => `<em>${escapeHtml(t)}</em>`);
-  // {\tt text}, {\it text}, {\bf text}, {\sl text}
+
   s = s.replace(/\{\\tt\s+([^}]*)\}/g, (_, t) => `<code>${escapeHtml(t)}</code>`);
   s = s.replace(/\{\\it\s+([^}]*)\}/g, (_, t) => `<em>${escapeHtml(t)}</em>`);
   s = s.replace(/\{\\bf\s+([^}]*)\}/g, (_, t) => `<strong>${escapeHtml(t)}</strong>`);
   s = s.replace(/\{\\sl\s+([^}]*)\}/g, (_, t) => `<em class="slanted">${escapeHtml(t)}</em>`);
 
-  // --- Math: $$...$$ display, $...$ inline ---
-  // Process display math first (longer delimiter)
-  s = s.replace(/\$\$([\s\S]*?)\$\$/g, (_, m) => renderMath(m, true));
-  s = s.replace(/\$((?:[^$\\]|\\.)+?)\$/g, (_, m) => renderMath(m, false));
+  // --- Escaped TeX characters ---
+  s = s.replace(/\\{/g, '\x01').replace(/\\}/g, '\x02');
+  s = s.replace(/\\([&%#_$])/g, '$1');
 
-  // --- WEB-specific TeX macros (font commands already handled above) ---
+  // --- Quotes ---
+  s = s.replace(/``/g, '&ldquo;').replace(/''/g, '&rdquo;');
+  s = s.replace(/`([^']*)'/g, '&lsquo;$1&rsquo;');
 
-  // \^{x} → superscript
-  s = s.replace(/\\\^{([^}]*)}/g, (_, t) => `<sup>${escapeHtml(t)}</sup>`);
+  // --- WEB-specific TeX macros ---
+  s = s.replace(/\\\^\{([^}]*)\}/g, (_, t) => `<sup>${escapeHtml(t)}</sup>`);
+  s = s.replace(/_\{([^}]*)\}/g, (_, t) => `<sub>${escapeHtml(t)}</sub>`);
+  s = s.replace(/\\<([^>]*)>/g, (_, t) => `&lang;<em>${escapeHtml(t)}</em>&rang;`);
 
-  // _{x} → subscript (bare form)
-  s = s.replace(/_{([^}]*)}/g, (_, t) => `<sub>${escapeHtml(t)}</sub>`);
-
-  // \TeX → TeX logo
-  s = s.replace(/\\TeX\b/g, '<span class="tex-logo">T<sub>e</sub>X</span>');
-
-  // \MF → METAFONT logo
-  s = s.replace(/\\MF\b/g, '<span class="tex-logo">METAFONT</span>');
-
-  // \WEB → WEB logo
-  s = s.replace(/\\WEB\b/g, '<span class="tex-logo">WEB</span>');
+  // TeX-family compound logos
+  s = s.replace(/\\TeXbook(?!\w)/g, '<span class="tex-logo">T<sub>e</sub>X</span>book');
+  s = s.replace(/\\TeX82(?!\w)/g, '<span class="tex-logo">T<sub>e</sub>X</span>82');
+  s = s.replace(/\\TeX(?!\w)/g, '<span class="tex-logo">T<sub>e</sub>X</span>');
+  s = s.replace(/\\MF(?!\w)/g, '<span class="tex-logo">METAFONT</span>');
+  s = s.replace(/\\WEB(?!\w)/g, '<span class="tex-logo">WEB</span>');
+  s = s.replace(/\\PASCAL(?!\w)/g, '<span class="smallcaps">Pascal</span>');
+  s = s.replace(/\\pct!/g, '%');
+  s = s.replace(/\\ph(?!\w)/g, 'Pascal-H');
 
   // Paragraph breaks
-  s = s.replace(/\n{2,}/g, '</p><p>');
+  s = s.replace(/\n[ \t]*\n+/g, '</p><p>');
 
-  // \\ → <br>
-  s = s.replace(/\\\\/g, '<br>');
+  // Spacing and structural macros
+  s = s.replace(/\\\\(?!\w)/g, '<br>');
+  s = s.replace(/\\hfill(?!\w)/g, '<span class="hfill"></span>');
+  s = s.replace(/\\(small|med|big)skip(?!\w)/g, (_, sz) => `<span class="skip-${sz}"></span>`);
+  s = s.replace(/\\noindent\b/g, '');
+  s = s.replace(/\\yskip\b/g, '<span class="skip-small"></span>');
+  s = s.replace(/\\item\{([^}]*)\}/g, (_, lbl) => `<span class="item"><span class="item-label">${lbl}</span>`);
 
-  // \hfill → flex spacer
-  s = s.replace(/\\hfill\b/g, '<span class="hfill"></span>');
-
-  // \smallskip \medskip \bigskip → spacing divs
-  s = s.replace(/\\(small|med|big)skip\b/g, (_, sz) => `<div class="skip-${sz}"></div>`);
-
-  // \noindent
-  s = s.replace(/\\noindent\b\s*/g, '');
-
-  // \quad \qquad → non-breaking spaces
-  s = s.replace(/\\qquad\b/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
-  s = s.replace(/\\quad\b/g, '&nbsp;&nbsp;');
-
-  // ~ → non-breaking space
+  s = s.replace(/\\qquad(?!\w)/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
+  s = s.replace(/\\quad(?!\w)/g, '&nbsp;&nbsp;');
   s = s.replace(/(?<!\\)~/g, '&nbsp;');
+  s = s.replace(/\\\s/g, ' ');
 
-  // Remaining unknown macros: wrap in span so they're visible
-  s = s.replace(/\\[a-zA-Z]+\b/g, m => `<span class="tex-unknown">${escapeHtml(m)}</span>`);
+  // Clean up unknown macros
+  s = s.replace(/\\[a-zA-Z]+\b/g, '');
 
-  // Escape remaining HTML-unsafe characters (outside of spans we already built)
-  // We can't do a simple escapeHtml here since we've already inserted HTML.
-  // Instead we replace stray < > & that aren't part of tags.
-  // This is a best-effort approach for the TeX source's non-math content.
+  // Stray { } from TeX grouping
+  s = s.replace(/[{}]/g, '');
+
+  // Restore escaped braces
+  s = s.replace(/\x01/g, '{').replace(/\x02/g, '}');
+
+  // Restore placeholders
+  s = s.replace(/\x07P(\d+)\x07/g, (_, i) => placeholders[Number(i)]);
+
+  // & (unencoded)
   s = s.replace(/&(?![a-zA-Z#\d]+;)/g, '&amp;');
 
   return `<p>${s}</p>`;
