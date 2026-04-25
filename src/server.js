@@ -2,14 +2,17 @@
 import express from 'express';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dir, '..');
 const OUT_DIR = join(ROOT, 'output');
+const REPORTS_FILE = join(ROOT, 'reports.json');
 
 const app = express();
 const PORT = process.env.PORT || 7776;
+
+app.use(express.json());
 
 if (!existsSync(OUT_DIR)) {
   console.error(`Error: Output directory not found at ${OUT_DIR}`);
@@ -19,6 +22,27 @@ if (!existsSync(OUT_DIR)) {
 
 // Serve the generated HTML files
 app.use(express.static(OUT_DIR));
+
+// API to receive reports
+app.post('/api/reports', (req, res) => {
+  const report = req.body;
+  report.timestamp = new Date().toISOString();
+  
+  let reports = [];
+  if (existsSync(REPORTS_FILE)) {
+    try {
+      reports = JSON.parse(readFileSync(REPORTS_FILE, 'utf8'));
+    } catch (e) {
+      console.error('Failed to read reports.json', e);
+    }
+  }
+  
+  reports.push(report);
+  writeFileSync(REPORTS_FILE, JSON.stringify(reports, null, 2));
+  
+  console.log(`[Report Received] ${report.note || 'No note'}`);
+  res.json({ status: 'ok' });
+});
 
 // Simple index listing if no index.html exists
 app.get('/', (req, res) => {

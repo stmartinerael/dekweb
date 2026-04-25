@@ -37,6 +37,20 @@ The project provides both `npm` scripts and a `Makefile` for common tasks.
 | `make html` | Generates HTML versions of the WEB sources in `output/`. |
 | `make pdf` | Generates PDF versions using the traditional WEB toolchain. |
 | `make clean` | Removes build artifacts (`output/`, `.pdf`, `.tex`, etc.). |
+| `npm run mcp` | Starts the MCP server for issue reporting. |
+
+## MCP Server & Issue Reporting
+
+`dekweb` includes a built-in reporting mechanism and an MCP (Model Context Protocol) server to help identify and fix rendering issues.
+
+### How it works
+
+1. **Reporting Issues:** While viewing a generated HTML document, highlight any text that appears incorrectly rendered. A "Report Issue" button will appear. Click it to add a note about the problem.
+2. **Data Storage:** Reports are saved to `reports.json` in the project root.
+3. **MCP Server:** Run `npm run mcp` to start the MCP server. This allows AI agents to consume the reports using the following tools:
+   - `get_reports`: Retrieve all rendering issue reports.
+   - `clear_reports`: Clear the report history.
+   - Resource `reports://all`: Access reports as a JSON resource.
 
 ### Build Warnings
 
