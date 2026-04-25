@@ -31,9 +31,15 @@ To build the HTML viewer for all core WEB sources:
 npm run build
 ```
 
-The output will be generated in the `output/` directory.
+### Serving the Viewer
 
-### Running Tests
+To host the generated files locally:
+
+```bash
+npm start
+```
+
+The viewer will be available at `http://localhost:7776`.
 
 ```bash
 npm test
