@@ -1,0 +1,26 @@
+{
+  "name": "dekweb",
+  "version": "1.0.0",
+  "description": "Aesthetically-pleasing browser viewer for Knuth's WEB literate programs",
+  "type": "module",
+  "scripts": {
+    "fetch": "node src/fetch-sources.js",
+    "build": "node src/build.js",
+    "test": "node --test test/parser.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stmartinerael/dekweb.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/stmartinerael/dekweb/issues"
+  },
+  "homepage": "https://github.com/stmartinerael/dekweb#readme",
+  "dependencies": {
+    "katex": "^0.16.45",
+    "prismjs": "^1.30.0"
+  }
+}

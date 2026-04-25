@@ -1,0 +1,340 @@
+/* Computer Modern web fonts (served from CTAN) */
+@font-face {
+  font-family: 'Computer Modern';
+  src: url('https://cdn.jsdelivr.net/npm/computer-modern@0.1.2/cmu-serif.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/npm/computer-modern@0.1.2/cmu-serif.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Computer Modern';
+  src: url('https://cdn.jsdelivr.net/npm/computer-modern@0.1.2/cmu-serif-italic.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/npm/computer-modern@0.1.2/cmu-serif-italic.woff') format('woff');
+  font-weight: normal;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Computer Modern';
+  src: url('https://cdn.jsdelivr.net/npm/computer-modern@0.1.2/cmu-serif-bold.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/npm/computer-modern@0.1.2/cmu-serif-bold.woff') format('woff');
+  font-weight: bold;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Computer Modern Mono';
+  src: url('https://cdn.jsdelivr.net/npm/computer-modern@0.1.2/cmu-typewriter.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/npm/computer-modern@0.1.2/cmu-typewriter.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* ── Reset & Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink:        #1a1a1a;
+  --ink-light:  #444;
+  --paper:      #faf8f3;
+  --paper-alt:  #f2ede3;
+  --rule:       #c8bfaa;
+  --accent:     #7b3f00;       /* warm dark amber — like printer's ink */
+  --code-bg:    #1e1c18;
+  --code-ink:   #e8e0d0;
+  --link:       #5c3317;
+  --link-hover: #a0522d;
+  --font-body:  'Computer Modern', Palatino, 'Book Antiqua', Georgia, serif;
+  --font-mono:  'Computer Modern Mono', 'Courier New', Courier, monospace;
+  --max-prose:  68ch;
+  --max-code:   90ch;
+  --sidebar-w:  260px;
+}
+
+html { font-size: 17px; scroll-behavior: smooth; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.65;
+  display: flex;
+}
+
+/* ── Sidebar (TOC) ─────────────────────────────────────────────────────────── */
+#sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+  background: var(--paper-alt);
+  border-right: 1px solid var(--rule);
+  padding: 1.5rem 0;
+  transition: width 0.2s, min-width 0.2s;
+}
+
+#sidebar.collapsed {
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+#sidebar h2 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-light);
+  padding: 0 1rem 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 0.5rem;
+}
+
+#toc {
+  list-style: none;
+  padding: 0 0.5rem;
+}
+
+#toc li a {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--link);
+  text-decoration: none;
+  transition: background 0.1s;
+}
+
+#toc li a:hover { background: rgba(0,0,0,0.06); color: var(--link-hover); }
+#toc li a.active { background: rgba(0,0,0,0.09); font-weight: bold; }
+
+#toc .sec-num {
+  color: var(--ink-light);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  padding-top: 0.05em;
+}
+
+/* ── Main content ──────────────────────────────────────────────────────────── */
+#main {
+  flex: 1;
+  min-width: 0;
+  padding: 3rem 4rem 6rem;
+  max-width: calc(var(--max-code) + 8rem);
+}
+
+/* ── Document header ───────────────────────────────────────────────────────── */
+#doc-header {
+  margin-bottom: 3rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid var(--ink);
+}
+
+#doc-header h1 {
+  font-size: 2.2rem;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+#doc-header .subtitle {
+  color: var(--ink-light);
+  font-size: 0.9rem;
+  margin-top: 0.4rem;
+}
+
+/* ── Sections ──────────────────────────────────────────────────────────────── */
+.section {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr;
+  column-gap: 1.25rem;
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.section:last-child { border-bottom: none; }
+
+.section.starred {
+  margin-top: 3.5rem;
+  padding-top: 1rem;
+  border-top: 2px solid var(--ink);
+}
+
+.section-num {
+  grid-column: 1;
+  text-align: right;
+  color: var(--ink-light);
+  font-size: 0.78rem;
+  padding-top: 0.35em;
+  user-select: none;
+}
+
+.section-num a {
+  color: inherit;
+  text-decoration: none;
+}
+.section-num a:hover { color: var(--accent); }
+
+.section-body {
+  grid-column: 2;
+  min-width: 0;
+}
+
+/* Starred section title */
+.section-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+  color: var(--accent);
+  letter-spacing: -0.01em;
+}
+
+/* ── Prose (TeX) ───────────────────────────────────────────────────────────── */
+.tex-prose {
+  max-width: var(--max-prose);
+}
+
+.tex-prose p { margin-bottom: 0.85em; }
+.tex-prose p:last-child { margin-bottom: 0; }
+
+.tex-prose code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: rgba(0,0,0,0.06);
+  padding: 0.05em 0.25em;
+  border-radius: 2px;
+}
+
+.tex-unknown {
+  color: #999;
+  font-size: 0.85em;
+  font-family: var(--font-mono);
+}
+
+/* KaTeX display blocks */
+.katex-display {
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+/* ── Macro definitions (@d / @f) ───────────────────────────────────────────── */
+.defs {
+  margin: 0.75rem 0;
+}
+
+.def-entry {
+  display: flex;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--ink-light);
+  margin-bottom: 0.2rem;
+  flex-wrap: wrap;
+}
+
+.def-kind {
+  color: var(--accent);
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.def-name { color: var(--ink); }
+.def-sep  { color: var(--ink-light); }
+.def-val  { color: #555; word-break: break-all; }
+
+/* ── Code blocks ───────────────────────────────────────────────────────────── */
+.code-block-wrap {
+  margin: 0.75rem 0 0;
+  position: relative;
+}
+
+.chunk-label {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--ink-light);
+  margin-bottom: 0.25rem;
+}
+
+.chunk-label a { color: var(--link); text-decoration: none; }
+.chunk-label a:hover { text-decoration: underline; }
+
+pre.code-block {
+  background: var(--code-bg);
+  color: var(--code-ink);
+  font-family: var(--font-mono);
+  font-size: 0.83rem;
+  line-height: 1.55;
+  padding: 1rem 1.25rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  max-width: var(--max-code);
+  tab-size: 4;
+  -moz-tab-size: 4;
+}
+
+/* chunk refs inside code: §N style links */
+.chunk-ref {
+  color: #aad4ff;
+  text-decoration: none;
+  font-style: italic;
+}
+.chunk-ref:hover { text-decoration: underline; color: #cce5ff; }
+
+/* ── Search ────────────────────────────────────────────────────────────────── */
+#search-wrap {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+#search {
+  width: 100%;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.82rem;
+  font-family: var(--font-body);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+#search:focus { outline: 2px solid var(--accent); border-color: transparent; }
+
+/* ── Toggle button ─────────────────────────────────────────────────────────── */
+#toggle-sidebar {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 100;
+  background: var(--paper-alt);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.3rem 0.5rem;
+  color: var(--ink);
+}
+
+/* ── Utility ───────────────────────────────────────────────────────────────── */
+.tex-logo { font-family: var(--font-body); letter-spacing: 0.02em; }
+.hfill { flex: 1; }
+.skip-small { height: 0.5rem; }
+.skip-med   { height: 1rem; }
+.skip-big   { height: 1.75rem; }
+
+/* ── Print ─────────────────────────────────────────────────────────────────── */
+@media print {
+  #sidebar, #toggle-sidebar { display: none; }
+  #main { padding: 0; max-width: 100%; }
+  pre.code-block { background: #f4f4f4; color: #111; border: 1px solid #ccc; }
+  a { color: inherit; text-decoration: none; }
+  .section { break-inside: avoid; }
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  #sidebar { display: none; }
+  #main { padding: 1.5rem 1rem 4rem; }
+}
