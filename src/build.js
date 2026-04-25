@@ -49,12 +49,10 @@ function renderCode(raw, chunkDefs) {
     .replace(/@&/g, '')                            // @& (concatenate)
     .replace(/@\+/g, '')                           // @+ (indent)
     .replace(/@;/g, '')                            // @; (semicolon)
-    .replace(/@\./g, '')                           // @. (typewriter)
-    .replace(/@:/g, '')                            // @: (index)
-    .replace(/@\^/g, '')                           // @^ (index)
-    .replace(/@=[^@]*@>/g, m => m.slice(2, -2))   // @=verbatim@> → verbatim
+    .replace(/@[.:\^][^@]*@>/g, '')                // @. @: @^ index entries
+    .replace(/@=[^@]*@>/g, m => m.slice(2, -2))    // @=verbatim@> → verbatim
     .replace(/@'[^']*'/g, m => m)                  // @'x' character literal
-    .replace(/@"0-9a-fA-F]*/g, m => m);           // @"hex
+    .replace(/@"0-9a-fA-F]*/g, m => m);            // @"hex
 
 
   // Prism highlight

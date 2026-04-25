@@ -6,7 +6,8 @@
   "scripts": {
     "fetch": "node src/fetch-sources.js",
     "build": "node src/build.js",
-    "test": "node --test test/parser.test.js"
+    "test": "node --test test/parser.test.js",
+    "start": "node src/server.js"
   },
   "repository": {
     "type": "git",
@@ -20,6 +21,7 @@
   },
   "homepage": "https://github.com/stmartinerael/dekweb#readme",
   "dependencies": {
+    "express": "^5.2.1",
     "katex": "^0.16.45",
     "prismjs": "^1.30.0"
   }
