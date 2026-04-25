@@ -17,9 +17,22 @@ function escapeHtml(s) {
  * Render a math string with KaTeX, returning HTML.
  * Falls back to the raw source in a <code> if KaTeX throws.
  */
-function renderMath(math, display) {
+function renderMath(math, display, placeholders) {
+  // Resolve any placeholders that might have been captured in the math string
+  const resolvedMath = math.replace(/\x07P(\d+)\x07/g, (_, i) => {
+    const p = placeholders[Number(i)];
+    // If it's a code block, extract the text content and wrap in \texttt for KaTeX
+    const m = p.match(/<code>(.*?)<\/code>/);
+    if (m) {
+      // Escape special TeX characters in the code for KaTeX \texttt
+      const code = m[1].replace(/([&%#_$])/g, '\\$1');
+      return `\\texttt{${code}} `;
+    }
+    return p;
+  });
+
   try {
-    return katex.renderToString(math, {
+    return katex.renderToString(resolvedMath, {
       displayMode: display,
       throwOnError: false,
       macros: {
@@ -30,10 +43,14 @@ function renderMath(math, display) {
         "\\sq": "\\square",
         "\\hang": "",
         "\\noindent": "",
+        "\\section": "\\text{\\color{#cc0000}\\textsection}",
+        "\\glob": "\\text{\\color{#cc0000}glob}",
+        "\\gglob": "\\text{\\color{#cc0000}glob}",
+        "\\dots": "\\ldots",
       }
     });
   } catch {
-    return `<code class="math-fallback">${escapeHtml(math)}</code>`;
+    return `<code class="math-fallback">${escapeHtml(resolvedMath)}</code>`;
   }
 }
 
@@ -58,21 +75,21 @@ export function texToHtml(tex) {
   // --- |...| Pascal code snippets in prose ---
   s = s.replace(/\|([^|]+)\|/g, (_, code) => pushPlaceholder(`<code>${escapeHtml(code)}</code>`));
 
-  // --- Math: $$...$$ display, $...$ inline ---
-  s = s.replace(/\$\$([\s\S]*?)\$\$/g, (_, m) => pushPlaceholder(renderMath(m, true)));
-  s = s.replace(/\$((?:[^$\\]|\\.)+?)\$/g, (_, m) => pushPlaceholder(renderMath(m, false)));
-
   // --- WEB font commands ---
-  s = s.replace(/\\\.{([^}]*)}/g, (_, t) => `<code>${escapeHtml(t)}</code>`);
-  s = s.replace(/\\\.([a-zA-Z0-9_])/g, (_, c) => `<code>${escapeHtml(c)}</code>`);
-  s = s.replace(/\\&{([^}]*)}/g, (_, t) => `<strong>${escapeHtml(t)}</strong>`);
-  s = s.replace(/\\&([a-zA-Z])/g, (_, c) => `<strong>${escapeHtml(c)}</strong>`);
-  s = s.replace(/\\\|{([^}]*)}/g, (_, t) => `<em>${escapeHtml(t)}</em>`);
+  s = s.replace(/\\\.{([^}]*)}/g, (_, t) => pushPlaceholder(`<code>${escapeHtml(t)}</code>`));
+  s = s.replace(/\\\.([a-zA-Z0-9_])/g, (_, c) => pushPlaceholder(`<code>${escapeHtml(c)}</code>`));
+  s = s.replace(/\\&{([^}]*)}/g, (_, t) => pushPlaceholder(`<strong>${escapeHtml(t)}</strong>`));
+  s = s.replace(/\\&([a-zA-Z])/g, (_, c) => pushPlaceholder(`<strong>${escapeHtml(c)}</strong>`));
+  s = s.replace(/\\\|{([^}]*)}/g, (_, t) => pushPlaceholder(`<em>${escapeHtml(t)}</em>`));
 
-  s = s.replace(/\{\\tt\s+([^}]*)\}/g, (_, t) => `<code>${escapeHtml(t)}</code>`);
-  s = s.replace(/\{\\it\s+([^}]*)\}/g, (_, t) => `<em>${escapeHtml(t)}</em>`);
-  s = s.replace(/\{\\bf\s+([^}]*)\}/g, (_, t) => `<strong>${escapeHtml(t)}</strong>`);
-  s = s.replace(/\{\\sl\s+([^}]*)\}/g, (_, t) => `<em class="slanted">${escapeHtml(t)}</em>`);
+  s = s.replace(/\{\\tt\s+([^}]*)\}/g, (_, t) => pushPlaceholder(`<code>${escapeHtml(t)}</code>`));
+  s = s.replace(/\{\\it\s+([^}]*)\}/g, (_, t) => pushPlaceholder(`<em>${escapeHtml(t)}</em>`));
+  s = s.replace(/\{\\bf\s+([^}]*)\}/g, (_, t) => pushPlaceholder(`<strong>${escapeHtml(t)}</strong>`));
+  s = s.replace(/\{\\sl\s+([^}]*)\}/g, (_, t) => pushPlaceholder(`<em class="slanted">${escapeHtml(t)}</em>`));
+
+  // --- Math: $$...$$ display, $...$ inline ---
+  s = s.replace(/\$\$([\s\S]*?)\$\$/g, (_, m) => pushPlaceholder(renderMath(m, true, placeholders)));
+  s = s.replace(/\$((?:[^$\\]|\\.)+?)\$/g, (_, m) => pushPlaceholder(renderMath(m, false, placeholders)));
 
   // --- Escaped TeX characters ---
   s = s.replace(/\\{/g, '\x01').replace(/\\}/g, '\x02');
@@ -81,6 +98,10 @@ export function texToHtml(tex) {
   // --- Quotes ---
   s = s.replace(/``/g, '&ldquo;').replace(/''/g, '&rdquo;');
   s = s.replace(/`([^']*)'/g, '&lsquo;$1&rsquo;');
+
+  // --- Dashes ---
+  s = s.replace(/---/g, '&mdash;');
+  s = s.replace(/--/g, '&ndash;');
 
   // --- WEB-specific TeX macros ---
   s = s.replace(/\\\^\{([^}]*)\}/g, (_, t) => `<sup>${escapeHtml(t)}</sup>`);
@@ -96,6 +117,12 @@ export function texToHtml(tex) {
   s = s.replace(/\\PASCAL(?!\w)/g, '<span class="smallcaps">Pascal</span>');
   s = s.replace(/\\pct!/g, '%');
   s = s.replace(/\\ph(?!\w)/g, 'Pascal-H');
+
+  // Common WEB/TeX macros in prose
+  s = s.replace(/\\dots(?!\w)/g, '&hellip;');
+  s = s.replace(/\\ldots(?!\w)/g, '&hellip;');
+  s = s.replace(/\\section(?!\w)/g, '&sect;');
+  s = s.replace(/\\g?glob(?!\w)/g, 'glob');
 
   // Paragraph breaks
   s = s.replace(/\n[ \t]*\n+/g, '</p><p>');
@@ -122,8 +149,10 @@ export function texToHtml(tex) {
   // Restore escaped braces
   s = s.replace(/\x01/g, '{').replace(/\x02/g, '}');
 
-  // Restore placeholders
-  s = s.replace(/\x07P(\d+)\x07/g, (_, i) => placeholders[Number(i)]);
+  // Restore placeholders (multiple passes in case of nesting)
+  while (s.includes('\x07P')) {
+    s = s.replace(/\x07P(\d+)\x07/g, (_, i) => placeholders[Number(i)]);
+  }
 
   // & (unencoded)
   s = s.replace(/&(?![a-zA-Z#\d]+;)/g, '&amp;');

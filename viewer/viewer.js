@@ -108,4 +108,60 @@
       }, 150);
     });
   }
+
+  // ── Reporting Mechanism ─────────────────────────────────────────────────────
+  const reportBtn = document.createElement('button');
+  reportBtn.id = 'report-btn';
+  reportBtn.textContent = 'Report Issue';
+  document.body.appendChild(reportBtn);
+
+  document.addEventListener('mouseup', (e) => {
+    const selection = window.getSelection();
+    const text = selection.toString().trim();
+    
+    if (text && !reportBtn.contains(e.target)) {
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      
+      reportBtn.style.display = 'block';
+      reportBtn.style.top = `${rect.top + window.scrollY - 30}px`;
+      reportBtn.style.left = `${rect.left + window.scrollX}px`;
+      
+      // Store current selection data
+      reportBtn._data = {
+        selection: text,
+        sectionId: selection.anchorNode.parentElement.closest('.section')?.id,
+        htmlContext: selection.anchorNode.parentElement.outerHTML,
+        url: window.location.href
+      };
+    } else if (!text) {
+      reportBtn.style.display = 'none';
+    }
+  });
+
+  reportBtn.addEventListener('click', async () => {
+    const note = prompt('What is wrong with this rendering?', '');
+    if (note === null) return;
+
+    const data = { ...reportBtn._data, note };
+    reportBtn.style.display = 'none';
+    window.getSelection().removeAllRanges();
+
+    try {
+      const res = await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (res.ok) {
+        alert('Report sent! Thank you.');
+      } else {
+        alert('Failed to send report.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error sending report.');
+    }
+  });
 })();
+
