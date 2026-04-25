@@ -57,6 +57,7 @@ test('all webmac.tex macros should have a rendering rule in tex-to-html.js', asy
     'E', // exponent in math, usually handled by KaTeX natively or ignored
     'C', // Pascal comment, handled by PrismJS
     'ET', 'ETs', // cross-ref conjunctions
+    'B', 'T', // begin/end controlled comments (@{ @}), handled
   ]);
 
   const missing = [];
@@ -73,6 +74,7 @@ test('all webmac.tex macros should have a rendering rule in tex-to-html.js', asy
     // Search patterns for tex-to-html.js:
     const searchPatterns = [
       new RegExp(`"${escaped}"\\s*:`),             // KaTeX macro key: "\\." : ...
+      new RegExp(`'${escaped}'\\s*:`),             // map key: 'BS': ...
       new RegExp(`\\\\\\\\${escaped}`),           // \\m in JS string (regex): /\\m/
       new RegExp(`\\\\${escaped}`),               // \m in JS string
       // Also check if m is inside a group like \\(sc|mc) or \\([%#_$])
