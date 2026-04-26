@@ -6,7 +6,6 @@ output/
 *.tex
 *.idx
 *.scn
-GEMINI.md
 CLAUDE.md
 CONTENTS.tex
 
