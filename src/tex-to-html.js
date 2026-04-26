@@ -218,7 +218,7 @@ export function texToHtml(tex) {
   }
 
   // Handle \sc ... \mc or \sc ... \rm (basic best effort)
-  s = s.replace(/\\sc\b(.*?)\\(?:mc|rm|rm)\b/g, (_, t) => pushPlaceholder(`<span class="smallcaps">${escapeHtml(t.trim())}</span>`));
+  s = s.replace(/\\sc\b(.*?)\\(?:mc|rm)\b/g, (_, t) => pushPlaceholder(`<span class="smallcaps">${escapeHtml(t.trim())}</span>`));
   s = s.replace(/\\sc\b(.*)$/g, (_, t) => pushPlaceholder(`<span class="smallcaps">${escapeHtml(t.trim())}</span>`));
 
   s = s.replace(/\\&{([^}]*)}/g, (_, t) => pushPlaceholder(`<strong>${escapeHtml(t)}</strong>`));

@@ -114,7 +114,6 @@ export function parse(src) {
   }
 
   // --- Tokenise into raw section blobs ---
-  // ... (rest of tokenisation logic is unchanged)
   // A section starts with:
   //   @ <space>   (unnamed)
   //   @\n         (unnamed)
