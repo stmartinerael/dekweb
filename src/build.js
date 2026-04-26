@@ -213,16 +213,48 @@ function buildGraphData(sections, chunkDefs) {
 
   const edgeSet = new Set();
   const edges = [];
+
+  const macroDefs = new Map();
+  for (const sec of sections) {
+    if (sec.defs) {
+      for (const d of sec.defs) {
+        if (d.kind === 'd') {
+          const match = d.name.match(/^[A-Za-z_][A-Za-z0-9_]*/);
+          if (match) {
+            macroDefs.set(match[0], sec.number);
+          }
+        }
+      }
+    }
+  }
+
   for (const sec of sections) {
     if (!sec.code?.trim()) continue;
+    
+    // Chunk refs
     for (const [, name] of sec.code.matchAll(/@<([^@]*)@>/g)) {
       const defNums = chunkDefs.get(name.trim()) || [];
       for (const defNum of defNums) {
         if (defNum === sec.number) continue;
-        const key = `s${sec.number}->s${defNum}`;
+        const label = name.trim();
+        const key = `s${sec.number}->s${defNum}->${label}`;
         if (!edgeSet.has(key)) {
           edgeSet.add(key);
-          edges.push({ source: `s${sec.number}`, target: `s${defNum}`, label: name.trim() });
+          edges.push({ source: `s${sec.number}`, target: `s${defNum}`, label });
+        }
+      }
+    }
+
+    // Macro refs
+    const idens = sec.code.match(/\b[a-zA-Z][a-zA-Z0-9_]*\b/g) || [];
+    for (const iden of idens) {
+      if (macroDefs.has(iden)) {
+        const defNum = macroDefs.get(iden);
+        if (defNum === sec.number) continue;
+        const key = `s${sec.number}->s${defNum}->${iden}`;
+        if (!edgeSet.has(key)) {
+          edgeSet.add(key);
+          edges.push({ source: `s${sec.number}`, target: `s${defNum}`, label: iden });
         }
       }
     }
