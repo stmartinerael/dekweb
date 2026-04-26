@@ -41,7 +41,7 @@ function renderMath(math, display, placeholders) {
   try {
     return katex.renderToString(resolvedMath, {
       displayMode: display,
-      throwOnError: false,
+      throwOnError: true,
       macros: {
         "\\.": "\\texttt{#1}",
         "\\&": "\\textbf{#1}",
@@ -68,8 +68,9 @@ function renderMath(math, display, placeholders) {
         "\\O": "\\texttt{#1}",
       }
     });
-  } catch {
-    return `<code class="math-fallback">${escapeHtml(resolvedMath)}</code>`;
+  } catch (err) {
+    const cls = display ? 'math-fallback display' : 'math-fallback';
+    return `<code class="${cls}">${escapeHtml(resolvedMath)}</code>`;
   }
 }
 
