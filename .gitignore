@@ -7,6 +7,7 @@ output/
 *.idx
 *.scn
 GEMINI.md
+CLAUDE.md
 CONTENTS.tex
 
 # gemini-cli settings

@@ -1,1 +1,34 @@
-[]
+[
+  {
+    "selection": "<>",
+    "sectionId": "s76",
+    "htmlContext": "<span class=\"token operator\">&lt;&gt;</span>",
+    "url": "http://localhost:7776/weave.html#s29",
+    "note": "this should be a not equal sign",
+    "timestamp": "2026-04-26T00:12:25.870Z"
+  },
+  {
+    "selection": "\\vbox{\\halign{#\\hfil\\cr \\texttt{case x of} \\cr 1: $\\langle\\,$code for $x=1\\,\\rangle$;\\cr 3: $\\langle\\,$code for $x=3\\,\\rangle$;\\cr \\texttt{othercases} $\\langle\\,$code for \\texttt{x\\&lt;\\&gt;1} and \\texttt{x\\&lt;\\&gt;3} $\\,\\rangle$\\cr \\texttt{endcases} \\cr}}",
+    "sectionId": "s7",
+    "htmlContext": "<span class=\"katex-error\" title=\"ParseError: KaTeX parse error: Expected '}', got '#' at position 15: \\vbox{\\halign{#̲\\hfil\\cr\n\\textt…\" style=\"color:#cc0000\">\\vbox{\\halign{#\\hfil\\cr\n\\texttt{case x of} \\cr\n1: $\\langle\\,$code for $x=1\\,\\rangle$;\\cr\n3: $\\langle\\,$code for $x=3\\,\\rangle$;\\cr\n\\texttt{othercases}  $\\langle\\,$code for \\texttt{x\\&amp;lt;\\&amp;gt;1}  and \\texttt{x\\&amp;lt;\\&amp;gt;3} $\\,\\rangle$\\cr\n\\texttt{endcases} \\cr}}</span>",
+    "url": "http://localhost:7776/weave.html#s100",
+    "note": "this is not displayed correctly; unstyled TeX source",
+    "timestamp": "2026-04-26T00:34:53.967Z"
+  },
+  {
+    "selection": "history:=spotless;",
+    "sectionId": "s10",
+    "htmlContext": "<code>history<span class=\"token operator\">:=</span>spotless<span class=\"token punctuation\">;</span>\n\n</code>",
+    "url": "http://localhost:7776/weave.html#s100",
+    "note": "unnecssary padding around box",
+    "timestamp": "2026-04-26T00:35:16.624Z"
+  },
+  {
+    "selection": "\\def\\:{\\char\\count255\\global\\advance\\count255 by 1} \\count255='40 \\vbox{ \\hbox{\\hbox to 40pt{\\it\\hfill0\\/\\hfill}% \\hbox to 40pt{\\it\\hfill1\\/\\hfill}% \\hbox to 40pt{\\it\\hfill2\\/\\hfill}% \\hbox to 40pt{\\it\\hfill3\\/\\hfill}% \\hbox to 40pt{\\it\\hfill4\\/\\hfill}% \\hbox to 40pt{\\it\\hfill5\\/\\hfill}% \\hbox to 40pt{\\it\\hfill6\\/\\hfill}% \\hbox to 40pt{\\it\\hfill7\\/\\hfill}} \\vskip 4pt \\hrule \\def\\^{\\vrule height 10.5pt depth 4.5pt} \\halign{\\hbox to 0pt{\\hskip -24pt\\O{#0}\\hfill}&\\^ \\hbox to 40pt{\\tt\\hfill#\\hfill\\^}& &\\hbox to 40pt{\\tt\\hfill#\\hfill\\^}\\cr 04&\\:&\\:&\\:&\\:&\\:&\\:&\\:&\\:\\cr\\noalign{\\hrule} 05&\\:&\\:&\\:&\\:&\\:&\\:&\\:&\\:\\cr\\noalign{\\hrule} 06&\\:&\\:&\\:&\\:&\\:&\\:&\\:&\\:\\cr\\noalign{\\hrule} 07&\\:&\\:&\\:&\\:&\\:&\\:&\\:&\\:\\cr\\noalign{\\hrule} 10&\\:&\\:&\\:&\\:&\\:&\\:&\\:&\\:\\cr\\noalign{\\hrule} 11&\\:&\\:&\\:&\\:&\\:&\\:&\\:&\\:\\cr\\noalign{\\hrule} 12&\\:&\\:&\\:&\\:&\\:&\\:&\\:&\\:\\cr\\noalign{\\hrule} 13&\\:&\\:&\\:&\\:&\\:&\\:&\\:&\\:\\cr\\noalign{\\hrule} 14&\\:&\\:&\\:&\\:&\\:&\\:&\\:&\\:\\cr\\noalign{\\hrule} 15&\\:&\\:&\\:&\\:&\\:&\\:&\\:&\\:\\cr\\noalign{\\hrule} 16&\\:&\\:&\\:&\\:&\\:&\\:&\\:&\\:\\cr\\noalign{\\hrule} 17&\\:&\\:&\\:&\\:&\\:&\\:&\\:\\cr} \\hrule width 280pt}",
+    "sectionId": "s11",
+    "htmlContext": "<span class=\"katex-error\" title=\"ParseError: KaTeX parse error: Expected 'EOF', got '#' at position 455: …\\hskip -24pt\\O{#̲0}\\hfill}&amp;\\^\n\\h…\" style=\"color:#cc0000\">\\def\\:{\\char\\count255\\global\\advance\\count255 by 1}\n\\count255='40\n\\vbox{\n\\hbox{\\hbox to 40pt{\\it\\hfill0\\/\\hfill}%\n\\hbox to 40pt{\\it\\hfill1\\/\\hfill}%\n\\hbox to 40pt{\\it\\hfill2\\/\\hfill}%\n\\hbox to 40pt{\\it\\hfill3\\/\\hfill}%\n\\hbox to 40pt{\\it\\hfill4\\/\\hfill}%\n\\hbox to 40pt{\\it\\hfill5\\/\\hfill}%\n\\hbox to 40pt{\\it\\hfill6\\/\\hfill}%\n\\hbox to 40pt{\\it\\hfill7\\/\\hfill}}\n\\vskip 4pt\n\\hrule\n\\def\\^{\\vrule height 10.5pt depth 4.5pt}\n\\halign{\\hbox to 0pt{\\hskip -24pt\\O{#0}\\hfill}&amp;\\^\n\\hbox to 40pt{\\tt\\hfill#\\hfill\\^}&amp;\n&amp;\\hbox to 40pt{\\tt\\hfill#\\hfill\\^}\\cr\n04&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:\\cr\\noalign{\\hrule}\n05&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:\\cr\\noalign{\\hrule}\n06&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:\\cr\\noalign{\\hrule}\n07&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:\\cr\\noalign{\\hrule}\n10&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:\\cr\\noalign{\\hrule}\n11&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:\\cr\\noalign{\\hrule}\n12&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:\\cr\\noalign{\\hrule}\n13&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:\\cr\\noalign{\\hrule}\n14&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:\\cr\\noalign{\\hrule}\n15&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:\\cr\\noalign{\\hrule}\n16&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:\\cr\\noalign{\\hrule}\n17&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:&amp;\\:\\cr}\n\\hrule width 280pt}</span>",
+    "url": "http://localhost:7776/weave.html#s100",
+    "note": "unstyled TeX source",
+    "timestamp": "2026-04-26T00:35:31.760Z"
+  }
+]
