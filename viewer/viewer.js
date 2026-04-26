@@ -171,14 +171,24 @@
       .force('center', d3.forceCenter(width / 2, height / 2))
       .force('collision', d3.forceCollide(13));
 
-    const link = g.append('g')
-      .selectAll('line')
+    const linkGroup = g.append('g')
+      .selectAll('g')
       .data(edges)
-      .join('line')
+      .join('g');
+
+    const linkPath = linkGroup.append('line')
       .attr('stroke', colRule)
       .attr('stroke-width', 1)
       .attr('stroke-opacity', 0.7)
       .attr('marker-end', 'url(#arrowhead)');
+
+    const linkLabel = linkGroup.append('text')
+      .text(d => d.label)
+      .attr('font-size', '8px')
+      .attr('font-family', 'JetBrains Mono, monospace')
+      .attr('fill', colInkLight)
+      .attr('text-anchor', 'middle')
+      .attr('dy', -3);
 
     const nodeGroup = g.append('g')
       .selectAll('g')
@@ -224,9 +234,14 @@
       .text(d => d.title ? `§${d.num}: ${d.title}` : `§${d.num}`);
 
     simulation.on('tick', () => {
-      link
+      linkPath
         .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
         .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+
+      linkLabel
+        .attr('x', d => (d.source.x + d.target.x) / 2)
+        .attr('y', d => (d.source.y + d.target.y) / 2);
+
       nodeGroup.attr('transform', d => `translate(${d.x},${d.y})`);
     });
   }
