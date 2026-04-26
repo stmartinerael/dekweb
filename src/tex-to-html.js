@@ -42,22 +42,44 @@ function replaceOperators(s) {
  * Falls back to the raw source in a <code> if KaTeX throws.
  */
 function renderMath(math, display, placeholders) {
-  // Resolve any placeholders that might have been captured in the math string
+  // Resolve any placeholders that might have been captured in the math string.
+  // We extract the content from HTML tags and map our custom symbols back to TeX commands.
   const resolvedMath = math.replace(/\x07P(\d+)\x07/g, (_, i) => {
     const p = placeholders[Number(i)];
-    // If it's a code block, extract the text content and wrap in \texttt for KaTeX
-    const m = p.match(/<code>(.*?)<\/code>/);
-    if (m) {
-      // Escape special TeX characters in the code for KaTeX \texttt
-      // Also unescape HTML entities since they'll be inside \texttt which expects raw chars
-      const code = unescapeHtml(m[1]).replace(/([&%#_$])/g, '\\$1');
+    
+    // Typewriter/Code (using [\s\S] to handle newlines)
+    const mCode = p.match(/<code>([\s\S]*?)<\/code>/);
+    if (mCode) {
+      const code = unescapeHtml(mCode[1])
+        .replace(/≠/g, '\\ne ')
+        .replace(/≤/g, '\\le ')
+        .replace(/≥/g, '\\ge ')
+        .replace(/←/g, '\\gets ')
+        .replace(/([&%#_$])/g, '\\$1');
       return `\\texttt{${code}} `;
     }
-    // ... rest of logic for identifiers, reserved words
-    const it = p.match(/<em>(.*?)<\/em>/);
-    if (it) return `\\textit{${unescapeHtml(it[1])}} `;
-    const bf = p.match(/<strong>(.*?)<\/strong>/);
-    if (bf) return `\\textbf{${unescapeHtml(bf[1])}} `;
+
+    // Italics/Identifiers
+    const mEm = p.match(/<em>([\s\S]*?)<\/em>/);
+    if (mEm) {
+      const it = unescapeHtml(mEm[1])
+        .replace(/≠/g, '\\ne ')
+        .replace(/≤/g, '\\le ')
+        .replace(/≥/g, '\\ge ')
+        .replace(/←/g, '\\gets ');
+      return `\\textit{${it}} `;
+    }
+
+    // Bold/Reserved
+    const mStrong = p.match(/<strong>([\s\S]*?)<\/strong>/);
+    if (mStrong) {
+      const bf = unescapeHtml(mStrong[1])
+        .replace(/≠/g, '\\ne ')
+        .replace(/≤/g, '\\le ')
+        .replace(/≥/g, '\\ge ')
+        .replace(/←/g, '\\gets ');
+      return `\\textbf{${bf}} `;
+    }
 
     return p;
   });
@@ -80,6 +102,9 @@ function renderMath(math, display, placeholders) {
         "\\gglob": "\\text{\\color{#cc0000}glob}",
         "\\dots": "\\ldots",
         "\\to": "\\mathrel{.\\,.}",
+        "\\RA": "\\rightarrow",
+        "\\dleft": "\\langle",
+        "\\dright": "\\rangle",
         "\\G": "\\ge",
         "\\I": "\\ne",
         "\\K": "\\gets",
@@ -89,7 +114,9 @@ function renderMath(math, display, placeholders) {
         "\\V": "\\lor",
         "\\W": "\\land",
         "\\H": "\\texttt{#1}",
-        "\\O": "\\texttt{#1}",
+        "\\O": "\\text{'#1}",
+        "\\J": "\\texttt{@\\&}",
+        "\\v": "\\text{\\textvisiblespace}",
       }
     });
   } catch (err) {
