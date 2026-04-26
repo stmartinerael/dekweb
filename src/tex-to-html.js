@@ -117,6 +117,7 @@ function renderMath(math, display, placeholders) {
         "\\O": "\\text{'#1}",
         "\\J": "\\texttt{@\\&}",
         "\\v": "\\text{\\textvisiblespace}",
+        "\\cr": "\\\\",
       }
     });
   } catch (err) {
