@@ -28,12 +28,14 @@ const server = new Server(
   }
 );
 
-function getReports() {
-  if (!existsSync(REPORTS_FILE)) return [];
+function getReportsData() {
+  if (!existsSync(REPORTS_FILE)) return { processed: true, reports: [] };
   try {
-    return JSON.parse(readFileSync(REPORTS_FILE, "utf8"));
+    const data = JSON.parse(readFileSync(REPORTS_FILE, "utf8"));
+    if (Array.isArray(data)) return { processed: false, reports: data };
+    return data;
   } catch (e) {
-    return [];
+    return { processed: true, reports: [] };
   }
 }
 
@@ -57,7 +59,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
         {
           uri: "reports://all",
           mimeType: "application/json",
-          text: JSON.stringify(getReports(), null, 2),
+          text: JSON.stringify(getReportsData(), null, 2),
         },
       ],
     };
@@ -84,6 +86,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {},
         },
       },
+      {
+        name: "mark_reports_processed",
+        description: "Mark all current reports as processed.",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
     ],
   };
 });
@@ -91,23 +101,36 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   switch (request.params.name) {
     case "get_reports": {
-      const reports = getReports();
+      const data = getReportsData();
       return {
         content: [
           {
             type: "text",
-            text: JSON.stringify(reports, null, 2),
+            text: JSON.stringify(data.reports, null, 2),
           },
         ],
       };
     }
     case "clear_reports": {
-      writeFileSync(REPORTS_FILE, JSON.stringify([], null, 2));
+      writeFileSync(REPORTS_FILE, JSON.stringify({ processed: true, reports: [] }, null, 2));
       return {
         content: [
           {
             type: "text",
             text: "Reports cleared.",
+          },
+        ],
+      };
+    }
+    case "mark_reports_processed": {
+      const data = getReportsData();
+      data.processed = true;
+      writeFileSync(REPORTS_FILE, JSON.stringify(data, null, 2));
+      return {
+        content: [
+          {
+            type: "text",
+            text: "Reports marked as processed.",
           },
         ],
       };

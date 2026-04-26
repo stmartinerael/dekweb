@@ -49,8 +49,15 @@ The project provides both `npm` scripts and a `Makefile` for common tasks.
 2. **Data Storage:** Reports are saved to `reports.json` in the project root.
 3. **MCP Server:** Run `npm run mcp` to start the MCP server. This allows AI agents to consume the reports using the following tools:
    - `get_reports`: Retrieve all rendering issue reports.
-   - `clear_reports`: Clear the report history.
-   - Resource `reports://all`: Access reports as a JSON resource.
+   - `clear_reports`: Clear the report history and mark as processed.
+   - `mark_reports_processed`: Mark reports as processed without deleting them.
+   - Resource `reports://all`: Access reports and metadata as a JSON resource.
+
+### Data Safety
+
+The `reports.json` file now includes a `processed` flag.
+- **`make clean`**: Will skip deleting `reports.json` if it contains unprocessed reports (`processed: false` or a non-empty array).
+- **Override**: Use `make clean FORCE_CLEAN_REPORTS=1` to force deletion of the reports file regardless of its status.
 
 ### Build Warnings
 

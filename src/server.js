@@ -28,17 +28,23 @@ app.post('/api/reports', (req, res) => {
   const report = req.body;
   report.timestamp = new Date().toISOString();
   
-  let reports = [];
+  let data = { processed: false, reports: [] };
   if (existsSync(REPORTS_FILE)) {
     try {
-      reports = JSON.parse(readFileSync(REPORTS_FILE, 'utf8'));
+      const content = JSON.parse(readFileSync(REPORTS_FILE, 'utf8'));
+      if (Array.isArray(content)) {
+        data.reports = content;
+      } else {
+        data = content;
+      }
     } catch (e) {
       console.error('Failed to read reports.json', e);
     }
   }
   
-  reports.push(report);
-  writeFileSync(REPORTS_FILE, JSON.stringify(reports, null, 2));
+  data.reports.push(report);
+  data.processed = false;
+  writeFileSync(REPORTS_FILE, JSON.stringify(data, null, 2));
   
   console.log(`[Report Received] ${report.note || 'No note'}`);
   res.json({ status: 'ok' });
