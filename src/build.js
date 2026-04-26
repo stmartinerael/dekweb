@@ -187,6 +187,33 @@ function renderIndex(indexMap) {
   return html;
 }
 
+function buildGraphData(sections, chunkDefs) {
+  const nodes = sections.map(s => ({
+    id: `s${s.number}`,
+    num: s.number,
+    starred: s.starred,
+    title: s.title || null,
+  }));
+
+  const edgeSet = new Set();
+  const edges = [];
+  for (const sec of sections) {
+    if (!sec.code?.trim()) continue;
+    for (const [, name] of sec.code.matchAll(/@<([^@]*)@>/g)) {
+      const defNums = chunkDefs.get(name.trim()) || [];
+      for (const defNum of defNums) {
+        if (defNum === sec.number) continue;
+        const key = `s${sec.number}->s${defNum}`;
+        if (!edgeSet.has(key)) {
+          edgeSet.add(key);
+          edges.push({ source: `s${sec.number}`, target: `s${defNum}`, label: name.trim() });
+        }
+      }
+    }
+  }
+  return { nodes, edges };
+}
+
 async function buildFile(name) {
   const src = await readFile(join(ROOT, 'web-sources', name), 'utf8');
   console.log(`Parsing ${name}...`);
@@ -200,13 +227,14 @@ async function buildFile(name) {
   const katexCss = `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">`;
   // Prism theme
   const prismCss = `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">`;
-  // Modern font (Inter)
+  // Fonts (Inter for UI, JetBrains Mono for code)
   const fontCss = `<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">`;
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">`;
 
   const docTitle = basename(name, '.web').toUpperCase();
   const tocHtml = buildToc(sections);
+  const graphData = buildGraphData(sections, chunkDefs);
 
   console.log(`  Rendering sections...`);
   const sectionsHtml = sections.map(s => renderSection(s, chunkDefs)).join('\n');
@@ -225,6 +253,7 @@ ${fontCss}
 </head>
 <body>
 <button id="toggle-sidebar" title="Toggle table of contents">✕</button>
+<button id="toggle-graph" title="Section graph view">⬡</button>
 <nav id="sidebar">
   <h2>Contents</h2>
   <div id="search-wrap">
@@ -240,6 +269,19 @@ ${fontCss}
   ${sectionsHtml}
   ${indexHtml}
 </main>
+<div id="graph-overlay" hidden>
+  <div id="graph-toolbar">
+    <span id="graph-title">Section Graph &mdash; ${escapeHtml(docTitle)}</span>
+    <button id="graph-close">✕</button>
+  </div>
+  <svg id="graph-svg"></svg>
+  <div id="graph-legend">
+    <span>&#9679; Chapter section</span>
+    <span>&#9675; Regular section</span>
+    <span style="opacity:0.6">Drag to rearrange &nbsp;&middot;&nbsp; Scroll to zoom &nbsp;&middot;&nbsp; Click node to navigate</span>
+  </div>
+</div>
+<script>window.__GRAPH_DATA__ = ${JSON.stringify(graphData)};</script>
 <script>${js}</script>
 </body>
 </html>`;
