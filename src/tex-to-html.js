@@ -13,27 +13,73 @@ function escapeHtml(s) {
     .replace(/>/g, '&gt;');
 }
 
+function unescapeHtml(s) {
+  return s
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+const OP_MAP = {
+  '<>': '≠',
+  '<=': '≤',
+  '>=': '≥',
+  ':=': '←',
+};
+
+function replaceOperators(s) {
+  return s.replace(/(?:&lt;&gt;|&lt;=|&gt;=|:=|<>|<=|>=)/g, (match) => {
+    // Handle both escaped and unescaped versions
+    const unescaped = unescapeHtml(match);
+    return OP_MAP[unescaped] || match;
+  });
+}
+
 /**
  * Render a math string with KaTeX, returning HTML.
  * Falls back to the raw source in a <code> if KaTeX throws.
  */
 function renderMath(math, display, placeholders) {
-  // Resolve any placeholders that might have been captured in the math string
+  // Resolve any placeholders that might have been captured in the math string.
+  // We extract the content from HTML tags and map our custom symbols back to TeX commands.
   const resolvedMath = math.replace(/\x07P(\d+)\x07/g, (_, i) => {
     const p = placeholders[Number(i)];
-    // If it's a code block, extract the text content and wrap in \texttt for KaTeX
-    const m = p.match(/<code>(.*?)<\/code>/);
-    if (m) {
-      // Escape special TeX characters in the code for KaTeX \texttt
-      const code = m[1].replace(/([&%#_$])/g, '\\$1');
+    
+    // Typewriter/Code (using [\s\S] to handle newlines)
+    const mCode = p.match(/<code>([\s\S]*?)<\/code>/);
+    if (mCode) {
+      const code = unescapeHtml(mCode[1])
+        .replace(/≠/g, '\\ne ')
+        .replace(/≤/g, '\\le ')
+        .replace(/≥/g, '\\ge ')
+        .replace(/←/g, '\\gets ')
+        .replace(/([&%#_$])/g, '\\$1');
       return `\\texttt{${code}} `;
     }
-    // Handle italics (identifiers)
-    const it = p.match(/<em>(.*?)<\/em>/);
-    if (it) return `\\textit{${it[1]}} `;
-    // Handle bold (reserved words)
-    const bf = p.match(/<strong>(.*?)<\/strong>/);
-    if (bf) return `\\textbf{${bf[1]}} `;
+
+    // Italics/Identifiers
+    const mEm = p.match(/<em>([\s\S]*?)<\/em>/);
+    if (mEm) {
+      const it = unescapeHtml(mEm[1])
+        .replace(/≠/g, '\\ne ')
+        .replace(/≤/g, '\\le ')
+        .replace(/≥/g, '\\ge ')
+        .replace(/←/g, '\\gets ');
+      return `\\textit{${it}} `;
+    }
+
+    // Bold/Reserved
+    const mStrong = p.match(/<strong>([\s\S]*?)<\/strong>/);
+    if (mStrong) {
+      const bf = unescapeHtml(mStrong[1])
+        .replace(/≠/g, '\\ne ')
+        .replace(/≤/g, '\\le ')
+        .replace(/≥/g, '\\ge ')
+        .replace(/←/g, '\\gets ');
+      return `\\textbf{${bf}} `;
+    }
 
     return p;
   });
@@ -56,6 +102,9 @@ function renderMath(math, display, placeholders) {
         "\\gglob": "\\text{\\color{#cc0000}glob}",
         "\\dots": "\\ldots",
         "\\to": "\\mathrel{.\\,.}",
+        "\\RA": "\\rightarrow",
+        "\\dleft": "\\langle",
+        "\\dright": "\\rangle",
         "\\G": "\\ge",
         "\\I": "\\ne",
         "\\K": "\\gets",
@@ -65,12 +114,23 @@ function renderMath(math, display, placeholders) {
         "\\V": "\\lor",
         "\\W": "\\land",
         "\\H": "\\texttt{#1}",
-        "\\O": "\\texttt{#1}",
+        "\\O": "\\text{'#1}",
+        "\\J": "\\texttt{@\\&}",
+        "\\pb": "\\texttt{|\\ldots|}",
+        "\\v": "|",
+        "\\AM": "\\&",
+        "\\LB": "\\{",
+        "\\RB": "\\}",
+        "\\UL": "\\_",
+        "\\cr": "\\\\",
       }
     });
   } catch (err) {
     const cls = display ? 'math-fallback display' : 'math-fallback';
-    return `<code class="${cls}">${escapeHtml(resolvedMath)}</code>`;
+    // When falling back, we want to show the TeX source. 
+    // We should unescape entities that were resolved from placeholders
+    // to avoid double-escaping when we call escapeHtml here.
+    return `<code class="${cls}">${escapeHtml(unescapeHtml(resolvedMath))}</code>`;
   }
 }
 
@@ -93,7 +153,11 @@ export function texToHtml(tex) {
   s = s.replace(/@!/g, '');
 
   // --- |...| Pascal code snippets in prose ---
-  s = s.replace(/\|([^|]+)\|/g, (_, code) => pushPlaceholder(`<code>${escapeHtml(code)}</code>`));
+  s = s.replace(/\|([^|]+)\|/g, (_, code) => {
+    const escaped = escapeHtml(code);
+    const withOps = replaceOperators(escaped);
+    return pushPlaceholder(`<code>${withOps}</code>`);
+  });
 
   // --- WEB font commands ---
   // Handle \. specifically because of internal redefinitions
@@ -119,11 +183,14 @@ export function texToHtml(tex) {
       '&': '&',
       'AM': '&',
       'AT': '@',
+      'v': '|',
     };
     let res = content.replace(/\\([a-zA-Z]+|[^a-zA-Z])/g, (match, p1) => {
       return map[p1] !== undefined ? map[p1] : match;
     });
-    return pushPlaceholder(`<code>${escapeHtml(res)}</code>`);
+    const escaped = escapeHtml(res);
+    const withOps = replaceOperators(escaped);
+    return pushPlaceholder(`<code>${withOps}</code>`);
   };
 
   s = s.replace(/\\\.{((?:\\.|[^{}])*)}/g, (_, t) => handleTypewriter(t));
@@ -151,7 +218,7 @@ export function texToHtml(tex) {
   }
 
   // Handle \sc ... \mc or \sc ... \rm (basic best effort)
-  s = s.replace(/\\sc\b(.*?)\\(?:mc|rm|rm)\b/g, (_, t) => pushPlaceholder(`<span class="smallcaps">${escapeHtml(t.trim())}</span>`));
+  s = s.replace(/\\sc\b(.*?)\\(?:mc|rm)\b/g, (_, t) => pushPlaceholder(`<span class="smallcaps">${escapeHtml(t.trim())}</span>`));
   s = s.replace(/\\sc\b(.*)$/g, (_, t) => pushPlaceholder(`<span class="smallcaps">${escapeHtml(t.trim())}</span>`));
 
   s = s.replace(/\\&{([^}]*)}/g, (_, t) => pushPlaceholder(`<strong>${escapeHtml(t)}</strong>`));
@@ -200,6 +267,13 @@ export function texToHtml(tex) {
   // Common WEB/TeX macros in prose
   s = s.replace(/\\dots(?!\w)/g, '&hellip;');
   s = s.replace(/\\ldots(?!\w)/g, '&hellip;');
+  s = s.replace(/\\pb(?!\w)/g, '<code>|&hellip;|</code>');
+  s = s.replace(/\\v(?!\w)/g, '<code>|</code>');
+  s = s.replace(/\\AM(?!\w)/g, '&amp;');
+  s = s.replace(/\\LB(?!\w)/g, '{');
+  s = s.replace(/\\RB(?!\w)/g, '}');
+  s = s.replace(/\\UL(?!\w)/g, '_');
+  s = s.replace(/\\J(?!\w)/g, '<code>@&amp;</code>');
   s = s.replace(/\\section(?!\w)/g, '&sect;');
   s = s.replace(/\\g?glob(?!\w)/g, 'glob');
   s = s.replace(/\\[AU]s?\b/g, ''); // Skip cross-ref notes like \A, \As, \U, \Us
