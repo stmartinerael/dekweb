@@ -27,12 +27,13 @@ function escapeHtml(s) {
  * chunk references into §N links.
  */
 function renderCode(raw, chunkDefs) {
-  if (!raw || !raw.trim()) return '';
+  const trimmedRaw = raw.trim();
+  if (!trimmedRaw) return '';
 
   // First, replace @<Name@> with placeholder tokens, then Prism-highlight,
   // then substitute the placeholders back as links.
   const refs = [];
-  let processed = raw.replace(/@<([^@]*)@>/g, (_, name) => {
+  let processed = trimmedRaw.replace(/@<([^@]*)@>/g, (_, name) => {
     const trimmed = name.trim();
     const defNums = chunkDefs.get(trimmed) || [];
     const target = defNums[0] ? `s${defNums[0]}` : null;
@@ -62,6 +63,14 @@ function renderCode(raw, chunkDefs) {
   } catch {
     highlighted = escapeHtml(processed);
   }
+
+  // Replace operators with mathematical symbols for that classic WEB look
+  highlighted = highlighted
+    .replace(/&lt;&gt;/g, '≠')
+    .replace(/&lt;>/g, '≠')
+    .replace(/&lt;=/g, '≤')
+    .replace(/&gt;=/g, '≥')
+    .replace(/>=/g, '≥');
 
   // Restore chunk refs
   highlighted = highlighted.replace(/\x00CHUNKREF(\d+)\x00/g, (_, i) => {

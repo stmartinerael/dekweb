@@ -347,6 +347,26 @@ a { transition: color 0.1s; }
   overflow-x: auto;
 }
 
+.math-fallback {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--paper-soft);
+  padding: 0 0.3em;
+  border-radius: 3px;
+  color: var(--ink-light);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.math-fallback.display {
+  display: block;
+  padding: 1rem;
+  margin: 0.7rem 0;
+  border: 1px dashed var(--rule);
+  background: var(--paper-soft);
+}
+
 /* ── Macro definitions (@d / @f) ──────────────────────────────────────────── */
 .defs {
   margin: 0.4rem 0 0.5rem 0;
