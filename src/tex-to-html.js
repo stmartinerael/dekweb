@@ -13,6 +13,30 @@ function escapeHtml(s) {
     .replace(/>/g, '&gt;');
 }
 
+function unescapeHtml(s) {
+  return s
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+const OP_MAP = {
+  '<>': '≠',
+  '<=': '≤',
+  '>=': '≥',
+  ':=': '←',
+};
+
+function replaceOperators(s) {
+  return s.replace(/(?:&lt;&gt;|&lt;=|&gt;=|:=|<>|<=|>=)/g, (match) => {
+    // Handle both escaped and unescaped versions
+    const unescaped = unescapeHtml(match);
+    return OP_MAP[unescaped] || match;
+  });
+}
+
 /**
  * Render a math string with KaTeX, returning HTML.
  * Falls back to the raw source in a <code> if KaTeX throws.
@@ -25,15 +49,15 @@ function renderMath(math, display, placeholders) {
     const m = p.match(/<code>(.*?)<\/code>/);
     if (m) {
       // Escape special TeX characters in the code for KaTeX \texttt
-      const code = m[1].replace(/([&%#_$])/g, '\\$1');
+      // Also unescape HTML entities since they'll be inside \texttt which expects raw chars
+      const code = unescapeHtml(m[1]).replace(/([&%#_$])/g, '\\$1');
       return `\\texttt{${code}} `;
     }
-    // Handle italics (identifiers)
+    // ... rest of logic for identifiers, reserved words
     const it = p.match(/<em>(.*?)<\/em>/);
-    if (it) return `\\textit{${it[1]}} `;
-    // Handle bold (reserved words)
+    if (it) return `\\textit{${unescapeHtml(it[1])}} `;
     const bf = p.match(/<strong>(.*?)<\/strong>/);
-    if (bf) return `\\textbf{${bf[1]}} `;
+    if (bf) return `\\textbf{${unescapeHtml(bf[1])}} `;
 
     return p;
   });
@@ -70,7 +94,10 @@ function renderMath(math, display, placeholders) {
     });
   } catch (err) {
     const cls = display ? 'math-fallback display' : 'math-fallback';
-    return `<code class="${cls}">${escapeHtml(resolvedMath)}</code>`;
+    // When falling back, we want to show the TeX source. 
+    // We should unescape entities that were resolved from placeholders
+    // to avoid double-escaping when we call escapeHtml here.
+    return `<code class="${cls}">${escapeHtml(unescapeHtml(resolvedMath))}</code>`;
   }
 }
 
@@ -93,7 +120,11 @@ export function texToHtml(tex) {
   s = s.replace(/@!/g, '');
 
   // --- |...| Pascal code snippets in prose ---
-  s = s.replace(/\|([^|]+)\|/g, (_, code) => pushPlaceholder(`<code>${escapeHtml(code)}</code>`));
+  s = s.replace(/\|([^|]+)\|/g, (_, code) => {
+    const escaped = escapeHtml(code);
+    const withOps = replaceOperators(escaped);
+    return pushPlaceholder(`<code>${withOps}</code>`);
+  });
 
   // --- WEB font commands ---
   // Handle \. specifically because of internal redefinitions
@@ -123,7 +154,9 @@ export function texToHtml(tex) {
     let res = content.replace(/\\([a-zA-Z]+|[^a-zA-Z])/g, (match, p1) => {
       return map[p1] !== undefined ? map[p1] : match;
     });
-    return pushPlaceholder(`<code>${escapeHtml(res)}</code>`);
+    const escaped = escapeHtml(res);
+    const withOps = replaceOperators(escaped);
+    return pushPlaceholder(`<code>${withOps}</code>`);
   };
 
   s = s.replace(/\\\.{((?:\\.|[^{}])*)}/g, (_, t) => handleTypewriter(t));
