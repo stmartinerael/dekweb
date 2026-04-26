@@ -21,25 +21,19 @@ cd dekweb
 make setup
 ```
 
-## Usage
+## Development
 
-### Building the Viewer
+`dekweb` follows specific development conventions to ensure high quality and consistency.
 
-To build the HTML viewer for all core WEB sources:
+### Conventions
 
-```bash
-npm run build
-```
+- **Reproduction-first**: Always create a reproduction script before fixing a bug.
+- **Always Push**: Feature and fix branches must always be pushed to the remote repository.
+- **Hooks**: Use `./hooks/check-pushed.sh` to verify your branch state before submitting.
 
-### Serving the Viewer
+Detailed conventions are maintained in [GEMINI.md](./GEMINI.md).
 
-To host the generated files locally:
-
-```bash
-npm start
-```
-
-The viewer will be available at `http://localhost:7776`.
+### Testing
 
 ```bash
 npm test

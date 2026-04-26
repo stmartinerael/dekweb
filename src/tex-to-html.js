@@ -116,7 +116,13 @@ function renderMath(math, display, placeholders) {
         "\\H": "\\texttt{#1}",
         "\\O": "\\text{'#1}",
         "\\J": "\\texttt{@\\&}",
-        "\\v": "\\text{\\textvisiblespace}",
+        "\\pb": "\\texttt{|\\ldots|}",
+        "\\v": "|",
+        "\\AM": "\\&",
+        "\\LB": "\\{",
+        "\\RB": "\\}",
+        "\\UL": "\\_",
+        "\\cr": "\\\\",
       }
     });
   } catch (err) {
@@ -177,6 +183,7 @@ export function texToHtml(tex) {
       '&': '&',
       'AM': '&',
       'AT': '@',
+      'v': '|',
     };
     let res = content.replace(/\\([a-zA-Z]+|[^a-zA-Z])/g, (match, p1) => {
       return map[p1] !== undefined ? map[p1] : match;
@@ -211,7 +218,7 @@ export function texToHtml(tex) {
   }
 
   // Handle \sc ... \mc or \sc ... \rm (basic best effort)
-  s = s.replace(/\\sc\b(.*?)\\(?:mc|rm|rm)\b/g, (_, t) => pushPlaceholder(`<span class="smallcaps">${escapeHtml(t.trim())}</span>`));
+  s = s.replace(/\\sc\b(.*?)\\(?:mc|rm)\b/g, (_, t) => pushPlaceholder(`<span class="smallcaps">${escapeHtml(t.trim())}</span>`));
   s = s.replace(/\\sc\b(.*)$/g, (_, t) => pushPlaceholder(`<span class="smallcaps">${escapeHtml(t.trim())}</span>`));
 
   s = s.replace(/\\&{([^}]*)}/g, (_, t) => pushPlaceholder(`<strong>${escapeHtml(t)}</strong>`));
@@ -260,6 +267,13 @@ export function texToHtml(tex) {
   // Common WEB/TeX macros in prose
   s = s.replace(/\\dots(?!\w)/g, '&hellip;');
   s = s.replace(/\\ldots(?!\w)/g, '&hellip;');
+  s = s.replace(/\\pb(?!\w)/g, '<code>|&hellip;|</code>');
+  s = s.replace(/\\v(?!\w)/g, '<code>|</code>');
+  s = s.replace(/\\AM(?!\w)/g, '&amp;');
+  s = s.replace(/\\LB(?!\w)/g, '{');
+  s = s.replace(/\\RB(?!\w)/g, '}');
+  s = s.replace(/\\UL(?!\w)/g, '_');
+  s = s.replace(/\\J(?!\w)/g, '<code>@&amp;</code>');
   s = s.replace(/\\section(?!\w)/g, '&sect;');
   s = s.replace(/\\g?glob(?!\w)/g, 'glob');
   s = s.replace(/\\[AU]s?\b/g, ''); // Skip cross-ref notes like \A, \As, \U, \Us
