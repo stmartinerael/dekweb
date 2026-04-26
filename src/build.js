@@ -65,12 +65,19 @@ function renderCode(raw, chunkDefs) {
   }
 
   // Replace operators with mathematical symbols for that classic WEB look
-  highlighted = highlighted
-    .replace(/&lt;&gt;/g, '≠')
-    .replace(/&lt;>/g, '≠')
-    .replace(/&lt;=/g, '≤')
-    .replace(/&gt;=/g, '≥')
-    .replace(/>=/g, '≥');
+  const opMap = {
+    '&lt;&gt;': '≠',
+    '&lt;>': '≠',
+    '<>': '≠',
+    '&lt;=': '≤',
+    '<=': '≤',
+    '&gt;=': '≥',
+    '>=': '≥',
+    ':=': '←',
+  };
+  highlighted = highlighted.replace(/<span class="token operator">([^<]+)<\/span>/g, (match, op) => {
+    return `<span class="token operator">${opMap[op] || op}</span>`;
+  });
 
   // Restore chunk refs
   highlighted = highlighted.replace(/\x00CHUNKREF(\d+)\x00/g, (_, i) => {
