@@ -133,101 +133,173 @@
 
     const width = graphSvgEl.clientWidth;
     const height = graphSvgEl.clientHeight;
+    const cx = width / 2, cy = height / 2;
 
-    // Resolve CSS variable colours for use in D3 (which doesn't read CSS vars on SVG attrs)
-    const style = getComputedStyle(document.documentElement);
-    const colLink = style.getPropertyValue('--link').trim();
-    const colRule = style.getPropertyValue('--rule').trim();
-    const colInk  = style.getPropertyValue('--ink').trim();
-    const colPaper = style.getPropertyValue('--paper').trim();
-    const colInkLight = style.getPropertyValue('--ink-light').trim();
+    const styleVars = getComputedStyle(document.documentElement);
+    const colInk   = styleVars.getPropertyValue('--ink').trim();
+    const colPaper = styleVars.getPropertyValue('--paper').trim();
+    const colRule  = styleVars.getPropertyValue('--rule').trim();
 
+    // Muted, warm-toned palette — one colour per chapter
+    const PALETTE = [
+      '#4878a8','#b87040','#50966e','#9060a0',
+      '#c07830','#4a7fb8','#789040','#a84868',
+      '#509090','#a06828',
+    ];
+    const chapterColor = (i) => PALETTE[i % PALETTE.length];
+
+    // ── Chapter membership ────────────────────────────────────────────────────
+    // Walk nodes in section order; each non-starred node belongs to the last
+    // starred node that preceded it.
+    const chapters = data.nodes.filter(n => n.starred);
+    const chapterIdx = new Map();  // nodeId → chapter index
+    let curChIdx = 0;
+    for (const node of data.nodes) {
+      if (node.starred) curChIdx = chapters.findIndex(c => c.id === node.id);
+      chapterIdx.set(node.id, Math.max(0, curChIdx));
+    }
+
+    // ── Node degree (for radius scaling) ─────────────────────────────────────
+    const degree = new Map(data.nodes.map(n => [n.id, 0]));
+    for (const e of data.edges) {
+      degree.set(e.source, (degree.get(e.source) || 0) + 1);
+      degree.set(e.target, (degree.get(e.target) || 0) + 1);
+    }
+    const maxDeg = Math.max(...degree.values(), 1);
+    const nodeR = (d) => d.starred ? 9 : 4 + (degree.get(d.id) || 0) / maxDeg * 4;
+
+    // ── Pre-position: chapters on a ring, sections scattered near their chapter ─
+    const ringR = Math.min(width, height) * 0.30;
+    const chapterPos = chapters.map((_, i) => {
+      const angle = (2 * Math.PI * i / chapters.length) - Math.PI / 2;
+      return { x: cx + ringR * Math.cos(angle), y: cy + ringR * Math.sin(angle) };
+    });
+    const jitter = () => (Math.random() - 0.5) * 55;
+    const nodes = data.nodes.map(d => {
+      const ci = chapterIdx.get(d.id) ?? 0;
+      const cp = chapterPos[ci] || { x: cx, y: cy };
+      return { ...d, x: cp.x + jitter(), y: cp.y + jitter() };
+    });
+    // Preserve original string IDs before D3's forceLink replaces them with refs
+    const edges = data.edges.map(d => ({
+      ...d, _src: d.source, _tgt: d.target,
+    }));
+
+    // ── SVG setup ─────────────────────────────────────────────────────────────
     d3.select(graphSvgEl).selectAll('*').remove();
-
-    const svg = d3.select(graphSvgEl)
-      .call(d3.zoom().scaleExtent([0.05, 6]).on('zoom', (e) => {
-        g.attr('transform', e.transform);
-      }));
-
+    const zoomBehavior = d3.zoom().scaleExtent([0.04, 8]).on('zoom', e => g.attr('transform', e.transform));
+    const svg = d3.select(graphSvgEl).call(zoomBehavior);
     const g = svg.append('g');
 
     svg.append('defs').append('marker')
-      .attr('id', 'arrowhead')
-      .attr('viewBox', '0 -3 6 6')
-      .attr('refX', 15).attr('refY', 0)
-      .attr('markerWidth', 5).attr('markerHeight', 5)
-      .attr('orient', 'auto')
-      .append('path')
-      .attr('d', 'M0,-3L6,0L0,3')
-      .attr('fill', colRule);
+      .attr('id', 'arr')
+      .attr('viewBox', '0 -3 6 6').attr('refX', 17).attr('refY', 0)
+      .attr('markerWidth', 4).attr('markerHeight', 4).attr('orient', 'auto')
+      .append('path').attr('d', 'M0,-3L6,0L0,3').attr('fill', colRule);
 
-    // Deep-clone nodes/edges so D3 can mutate them for simulation
-    const nodes = data.nodes.map(d => ({ ...d }));
-    const edges = data.edges.map(d => ({ ...d }));
+    // ── Chapter hull backgrounds ───────────────────────────────────────────────
+    const hullG = g.append('g');
 
-    const simulation = d3.forceSimulation(nodes)
-      .force('link', d3.forceLink(edges).id(d => d.id).distance(55).strength(0.4))
-      .force('charge', d3.forceManyBody().strength(-100))
-      .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide(13));
+    function expandHull(pts, pad) {
+      const mx = pts.reduce((s, p) => s + p[0], 0) / pts.length;
+      const my = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+      return pts.map(([x, y]) => {
+        const dx = x - mx, dy = y - my;
+        const d = Math.sqrt(dx * dx + dy * dy) || 1;
+        return [x + dx / d * pad, y + dy / d * pad];
+      });
+    }
 
-    const link = g.append('g')
-      .selectAll('line')
-      .data(edges)
-      .join('line')
-      .attr('stroke', colRule)
-      .attr('stroke-width', 1)
-      .attr('stroke-opacity', 0.7)
-      .attr('marker-end', 'url(#arrowhead)');
+    function updateHulls() {
+      const byChapter = new Map();
+      for (const n of nodes) {
+        const ci = chapterIdx.get(n.id) ?? 0;
+        if (!byChapter.has(ci)) byChapter.set(ci, []);
+        byChapter.get(ci).push([n.x, n.y]);
+      }
+      const hullData = [];
+      for (const [ci, pts] of byChapter) {
+        const raw = pts.length >= 3 ? d3.polygonHull(pts) : null;
+        const poly = raw ? expandHull(raw, 18) : null;
+        if (poly) hullData.push({ ci, poly });
+      }
+      const sel = hullG.selectAll('path').data(hullData, d => d.ci);
+      sel.enter().append('path').merge(sel)
+        .attr('fill', d => chapterColor(d.ci))
+        .attr('fill-opacity', 0.07)
+        .attr('stroke', d => chapterColor(d.ci))
+        .attr('stroke-opacity', 0.25)
+        .attr('stroke-width', 1.5)
+        .attr('stroke-linejoin', 'round')
+        .attr('d', d => 'M' + d.poly.map(p => p.join(',')).join('L') + 'Z');
+      sel.exit().remove();
+    }
 
-    const nodeGroup = g.append('g')
-      .selectAll('g')
-      .data(nodes)
-      .join('g')
+    // ── Edges ─────────────────────────────────────────────────────────────────
+    const link = g.append('g').selectAll('line').data(edges).join('line')
+      .attr('stroke', d => chapterColor(chapterIdx.get(d._src) ?? 0))
+      .attr('stroke-width', 0.9)
+      .attr('stroke-opacity', 0.3)
+      .attr('marker-end', 'url(#arr)');
+
+    // ── Nodes ─────────────────────────────────────────────────────────────────
+    const nodeGroup = g.append('g').selectAll('g').data(nodes).join('g')
       .attr('cursor', 'pointer')
       .on('click', (e, d) => {
         graphOverlay.hidden = true;
-        const target = document.getElementById(d.id);
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.getElementById(d.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       })
-      .call(
-        d3.drag()
-          .on('start', (e, d) => {
-            if (!e.active) simulation.alphaTarget(0.3).restart();
-            d.fx = d.x; d.fy = d.y;
-          })
-          .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
-          .on('end', (e, d) => {
-            if (!e.active) simulation.alphaTarget(0);
-            d.fx = null; d.fy = null;
-          })
+      .call(d3.drag()
+        .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+        .on('drag',  (e, d) => { d.fx = e.x; d.fy = e.y; })
+        .on('end',   (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; })
       );
 
     nodeGroup.append('circle')
-      .attr('r', d => d.starred ? 9 : 5)
-      .attr('fill', d => d.starred ? colLink : colPaper)
-      .attr('stroke', d => d.starred ? colLink : colRule)
+      .attr('r', nodeR)
+      .attr('fill', d => d.starred ? chapterColor(chapterIdx.get(d.id) ?? 0) : colPaper)
+      .attr('stroke', d => chapterColor(chapterIdx.get(d.id) ?? 0))
       .attr('stroke-width', d => d.starred ? 0 : 1.5);
 
-    // Chapter labels
+    // Chapter title labels (always visible)
     nodeGroup.filter(d => d.starred).append('text')
-      .attr('dy', '0.35em')
-      .attr('x', 12)
-      .attr('font-size', '10px')
-      .attr('font-family', 'Inter, sans-serif')
-      .attr('fill', colInk)
-      .attr('pointer-events', 'none')
+      .attr('dy', '0.35em').attr('x', 12)
+      .attr('font-size', '9px').attr('font-family', 'Inter, sans-serif')
+      .attr('fill', colInk).attr('pointer-events', 'none')
       .text(d => d.title ? `§${d.num} ${d.title}` : `§${d.num}`);
 
-    // Tooltip for all nodes
     nodeGroup.append('title')
       .text(d => d.title ? `§${d.num}: ${d.title}` : `§${d.num}`);
 
+    // ── Simulation ────────────────────────────────────────────────────────────
+    const simulation = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(edges).id(d => d.id).distance(45).strength(0.5))
+      .force('charge', d3.forceManyBody().strength(d => d.starred ? -200 : -60))
+      .force('cluster_x', d3.forceX(d => chapterPos[chapterIdx.get(d.id) ?? 0]?.x ?? cx)
+        .strength(d => d.starred ? 0.4 : 0.15))
+      .force('cluster_y', d3.forceY(d => chapterPos[chapterIdx.get(d.id) ?? 0]?.y ?? cy)
+        .strength(d => d.starred ? 0.4 : 0.15))
+      .force('collision', d3.forceCollide(d => nodeR(d) + 4))
+      .alphaDecay(0.018)
+      .alphaMin(0.001);
+
     simulation.on('tick', () => {
-      link
-        .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
-        .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+      link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+          .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
       nodeGroup.attr('transform', d => `translate(${d.x},${d.y})`);
+      updateHulls();
+    });
+
+    // Zoom to fit after simulation settles
+    simulation.on('end', () => {
+      const bbox = g.node().getBBox();
+      if (!bbox.width || !bbox.height) return;
+      const pad = 48;
+      const scale = Math.min((width - pad * 2) / bbox.width, (height - pad * 2) / bbox.height, 1.8);
+      const tx = (width  - bbox.width  * scale) / 2 - bbox.x * scale;
+      const ty = (height - bbox.height * scale) / 2 - bbox.y * scale;
+      svg.transition().duration(700)
+        .call(zoomBehavior.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
     });
   }
 
