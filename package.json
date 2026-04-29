@@ -8,6 +8,7 @@
     "build": "node src/build.js",
     "test": "node --test test/*.test.js",
     "start": "node src/server.js",
+    "recipes": "node src/recipes-server.js",
     "mcp": "node src/mcp-server.js"
   },
   "repository": {
