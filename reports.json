@@ -1,4 +1,29 @@
 {
   "processed": true,
-  "reports": []
+  "reports": [
+    {
+      "selection": "$\\\\{debug}\\equiv\\null$",
+      "sectionId": "s3",
+      "htmlContext": "<span class=\"def-val\">@{ {change this to `$\\\\{debug}\\equiv\\null$' when debugging}</span>",
+      "url": "http://localhost:7776/tangle.html",
+      "note": "this displays wrong",
+      "timestamp": "2026-04-29T01:10:01.331Z"
+    },
+    {
+      "selection": "$\\\\{gubed}\\equiv\\null$",
+      "sectionId": "s3",
+      "htmlContext": "<span class=\"def-val\">@t@&gt;@} {change this to `$\\\\{gubed}\\equiv\\null$' when debugging}</span>",
+      "url": "http://localhost:7776/tangle.html",
+      "note": "should be rendered ",
+      "timestamp": "2026-04-29T01:10:15.345Z"
+    },
+    {
+      "selection": "define\nignore\n≡\n0 {control code of no interest to \\.{TANGLE}}\ndefine\ncontrol_text\n≡\n@'203 {control code for `\\.{@@t}', `\\.{@@\\^}', etc.}\ndefine\nformat\n≡\n@'204 {control code for `\\.{@@f}'}\ndefine\ndefinition\n≡\n@'205 {control code for `\\.{@@d}'}\ndefine\nbegin_Pascal\n≡\n@'206 {control code for `\\.{@@p}'}\ndefine\nmodule_name\n≡\n@'207 {control code for `\\.{@@<}'}\ndefine\nnew_module\n≡\n@'210 {control code for `\\.{@@\\ }' and `\\.{@@*}'}",
+      "sectionId": "s139",
+      "htmlContext": "<span class=\"def-val\">@'210 {control code for `\\.{@@\\ }' and `\\.{@@*}'}</span>",
+      "url": "http://localhost:7776/tangle.html#s171",
+      "note": "\\. text should be renedered -- even when in comment",
+      "timestamp": "2026-04-29T01:13:48.750Z"
+    }
+  ]
 }

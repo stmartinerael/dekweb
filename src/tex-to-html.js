@@ -13,7 +13,7 @@ function escapeHtml(s) {
     .replace(/>/g, '&gt;');
 }
 
-function unescapeHtml(s) {
+export function unescapeHtml(s) {
   return s
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
@@ -123,9 +123,12 @@ function renderMath(math, display, placeholders) {
         "\\RB": "\\}",
         "\\UL": "\\_",
         "\\cr": "\\\\",
+        "\\null": "\\hbox{}",
+        "\\empty": "",
       }
     });
   } catch (err) {
+    console.warn(`KaTeX error: ${err.message} in math: ${resolvedMath}`);
     const cls = display ? 'math-fallback display' : 'math-fallback';
     // When falling back, we want to show the TeX source. 
     // We should unescape entities that were resolved from placeholders
@@ -138,8 +141,10 @@ function renderMath(math, display, placeholders) {
  * Main converter. Takes raw TeX prose (from parser.js section.tex) and
  * returns an HTML string.
  */
-export function texToHtml(tex) {
+export function texToHtml(tex, options = {}) {
   if (!tex) return '';
+
+  const isInline = options.inline === true;
 
   let s = tex;
   const placeholders = [];
@@ -151,6 +156,7 @@ export function texToHtml(tex) {
 
   // --- WEB control codes that appear in prose ---
   s = s.replace(/@!/g, '');
+  s = s.replace(/@@/g, '@');
 
   // --- |...| Pascal code snippets in prose ---
   s = s.replace(/\|([^|]+)\|/g, (_, code) => {
@@ -185,7 +191,9 @@ export function texToHtml(tex) {
       'AT': '@',
       'v': '|',
     };
-    let res = content.replace(/\\([a-zA-Z]+|[^a-zA-Z])/g, (match, p1) => {
+    // Handle @@ -> @ specifically inside \.
+    let res = content.replace(/@@/g, '@');
+    res = res.replace(/\\([a-zA-Z]+|[^a-zA-Z])/g, (match, p1) => {
       return map[p1] !== undefined ? map[p1] : match;
     });
     const escaped = escapeHtml(res);
@@ -277,10 +285,12 @@ export function texToHtml(tex) {
   s = s.replace(/\\section(?!\w)/g, '&sect;');
   s = s.replace(/\\g?glob(?!\w)/g, 'glob');
   s = s.replace(/\\[AU]s?\b/g, ''); // Skip cross-ref notes like \A, \As, \U, \Us
-  s = s.replace(/\\Y\b/g, '</p><p>');
+  s = s.replace(/\\Y\b/g, isInline ? '' : '</p><p>');
 
   // Paragraph breaks
-  s = s.replace(/\n[ \t]*\n+/g, '</p><p>');
+  if (!isInline) {
+    s = s.replace(/\n[ \t]*\n+/g, '</p><p>');
+  }
 
 
   // Spacing and structural macros
@@ -313,5 +323,5 @@ export function texToHtml(tex) {
   // & (unencoded)
   s = s.replace(/&(?![a-zA-Z#\d]+;)/g, '&amp;');
 
-  return `<p>${s}</p>`;
+  return isInline ? s : `<p>${s}</p>`;
 }

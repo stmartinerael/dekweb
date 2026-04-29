@@ -4,7 +4,7 @@ import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { parse } from './parser.js';
-import { texToHtml } from './tex-to-html.js';
+import { texToHtml, unescapeHtml } from './tex-to-html.js';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dir, '..');
@@ -22,41 +22,102 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
+function findBalancedBraces(s, startIdx) {
+  let depth = 0;
+  for (let i = startIdx; i < s.length; i++) {
+    if (s[i] === '{') depth++;
+    else if (s[i] === '}') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
 /**
  * Render a code string with Prism (Pascal), also converting @<Name@>
  * chunk references into §N links.
  */
 function renderCode(raw, chunkDefs) {
-  const trimmedRaw = raw.trim();
-  if (!trimmedRaw) return '';
+  let s = raw.trim();
+  if (!s) return '';
 
-  // First, replace @<Name@> with placeholder tokens, then Prism-highlight,
-  // then substitute the placeholders back as links.
+  // 1. Protect Chunk Refs @<...@>
   const refs = [];
-  let processed = trimmedRaw.replace(/@<([^@]*)@>/g, (_, name) => {
+  s = s.replace(/@<([^@]*)@>/g, (_, name) => {
+    const id = `__WEB_REF_${refs.length}__`;
     const trimmed = name.trim();
     const defNums = chunkDefs.get(trimmed) || [];
     const target = defNums[0] ? `s${defNums[0]}` : null;
-    const idx = refs.length;
     refs.push({ name: trimmed, target });
-    return `\x00CHUNKREF${idx}\x00`;
+    return id;
   });
 
-  // Strip other WEB control codes that don't translate to code
-  processed = processed
+  // 2. Protect WEB constants @'oct, @"hex
+  const octs = [];
+  const hexs = [];
+  s = s.replace(/@'([0-7]+)/g, (_, n) => {
+    const id = `__WEB_OCT_${octs.length}__`;
+    octs.push(n);
+    return id;
+  });
+  s = s.replace(/@"([0-9a-fA-F]+)/g, (_, n) => {
+    const id = `__WEB_HEX_${hexs.length}__`;
+    hexs.push(n);
+    return id;
+  });
+
+  // 3. Extract comments (balanced braces) to avoid Prism confusion
+  const comments = [];
+  let codeWithPlaceholders = '';
+  let i = 0;
+  while (i < s.length) {
+    if (s[i] === '{') {
+      const end = findBalancedBraces(s, i);
+      if (end !== -1) {
+        const id = `__WEB_COMMENT_${comments.length}__`;
+        comments.push(s.slice(i + 1, end));
+        codeWithPlaceholders += id;
+        i = end + 1;
+        continue;
+      }
+    }
+    // Handle strings to avoid finding { in them
+    if (s[i] === "'") {
+      codeWithPlaceholders += "'";
+      i++;
+      while (i < s.length) {
+        if (s[i] === "'" && s[i + 1] === "'") {
+          codeWithPlaceholders += "''";
+          i += 2;
+        } else if (s[i] === "'") {
+          codeWithPlaceholders += "'";
+          i++;
+          break;
+        } else {
+          codeWithPlaceholders += s[i];
+          i++;
+        }
+      }
+      continue;
+    }
+    codeWithPlaceholders += s[i];
+    i++;
+  }
+
+  // 4. Strip other WEB control codes that don't translate to code
+  let processed = codeWithPlaceholders
     .replace(/@[@/|#+;!]/g, m => m === '@@' ? '@' : '')
     .replace(/@t[\s\S]*?@>/g, '')                  // @t... @> format control
     .replace(/@h/g, '')                            // @h (header)
     .replace(/@&/g, '')                            // @& (concatenate)
     .replace(/@\+/g, '')                           // @+ (indent)
     .replace(/@;/g, '')                            // @; (semicolon)
+    .replace(/@[{}]/g, '')                         // @{ and @} (debug/stat blocks)
     .replace(/@[.:\^][^@]*@>/g, '')                // @. @: @^ index entries
-    .replace(/@=[^@]*@>/g, m => m.slice(2, -2))    // @=verbatim@> → verbatim
-    .replace(/@'[^']*'/g, m => m)                  // @'x' character literal
-    .replace(/@"0-9a-fA-F]*/g, m => m);            // @"hex
+    .replace(/@=[^@]*@>/g, m => m.slice(2, -2));   // @=verbatim@> → verbatim
 
-
-  // Prism highlight
+  // 5. Prism highlight
   let highlighted;
   try {
     highlighted = Prism.highlight(processed, Prism.languages.pascal, 'pascal');
@@ -64,6 +125,7 @@ function renderCode(raw, chunkDefs) {
     highlighted = escapeHtml(processed);
   }
 
+  // 6. Post-process
   // Replace operators with mathematical symbols for that classic WEB look
   const opMap = {
     '&lt;&gt;': '≠',
@@ -79,14 +141,30 @@ function renderCode(raw, chunkDefs) {
     return `<span class="token operator">${opMap[op] || op}</span>`;
   });
 
+  // Restore comments and process TeX
+  highlighted = highlighted.replace(/__WEB_COMMENT_(\d+)__/g, (match, idx) => {
+    const content = comments[Number(idx)];
+    const rendered = texToHtml(content, { inline: true });
+    return `<span class="token comment">{${rendered}}</span>`;
+  });
+
+  // Restore octal/hex
+  highlighted = highlighted.replace(/__WEB_OCT_(\d+)__/g, (_, idx) => `<span class="token number">@'${octs[Number(idx)]}</span>`);
+  highlighted = highlighted.replace(/__WEB_HEX_(\d+)__/g, (_, idx) => `<span class="token number">@"${hexs[Number(idx)]}</span>`);
+
   // Restore chunk refs
-  highlighted = highlighted.replace(/\x00CHUNKREF(\d+)\x00/g, (_, i) => {
-    const { name, target } = refs[Number(i)];
+  highlighted = highlighted.replace(/__WEB_REF_(\d+)__/g, (_, idx) => {
+    const { name, target } = refs[Number(idx)];
     if (target) {
       return `<a class="chunk-ref" href="#${target}">⟨${escapeHtml(name)}⟩</a>`;
     }
     return `<span class="chunk-ref unresolved">⟨${escapeHtml(name)}⟩</span>`;
   });
+
+  // Clean up any double spans created by replacing placeholders inside spans
+  highlighted = highlighted.replace(/<span class="[^"]*">(<span class="token comment">[\s\S]*?<\/span>)<\/span>/g, '$1');
+  highlighted = highlighted.replace(/<span class="[^"]*">(<a class="chunk-ref"[\s\S]*?<\/a>)<\/span>/g, '$1');
+  highlighted = highlighted.replace(/<span class="[^"]*">(<span class="token number">[\s\S]*?<\/span>)<\/span>/g, '$1');
 
   return highlighted;
 }
@@ -130,11 +208,12 @@ function renderSection(sec, chunkDefs) {
     bodyHtml += '<div class="defs">\n';
     for (const { kind, name, value } of defs) {
       const kindLabel = kind === 'd' ? 'define' : 'format';
+      const renderedValue = renderCode(value, chunkDefs);
       bodyHtml += `<div class="def-entry">` +
         `<span class="def-kind">${kindLabel}</span>` +
         `<span class="def-name">${escapeHtml(name)}</span>` +
         `<span class="def-sep">≡</span>` +
-        `<span class="def-val">${escapeHtml(value.trim())}</span>` +
+        `<span class="def-val">${renderedValue}</span>` +
         `</div>\n`;
     }
     bodyHtml += '</div>\n';
