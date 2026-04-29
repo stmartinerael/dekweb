@@ -25,6 +25,10 @@ function escapeHtml(s) {
 function findBalancedBraces(s, startIdx) {
   let depth = 0;
   for (let i = startIdx; i < s.length; i++) {
+    if (s[i] === '@' && (s[i + 1] === '{' || s[i + 1] === '}')) {
+      i++; // skip the next character
+      continue;
+    }
     if (s[i] === '{') depth++;
     else if (s[i] === '}') {
       depth--;
@@ -72,15 +76,10 @@ function renderCode(raw, chunkDefs) {
   let codeWithPlaceholders = '';
   let i = 0;
   while (i < s.length) {
-    if (s[i] === '{') {
-      const end = findBalancedBraces(s, i);
-      if (end !== -1) {
-        const id = `__WEB_COMMENT_${comments.length}__`;
-        comments.push(s.slice(i + 1, end));
-        codeWithPlaceholders += id;
-        i = end + 1;
-        continue;
-      }
+    if (s[i] === '@' && (s[i + 1] === '{' || s[i + 1] === '}')) {
+      codeWithPlaceholders += s.slice(i, i + 2);
+      i += 2;
+      continue;
     }
     // Handle strings to avoid finding { in them
     if (s[i] === "'") {
@@ -100,6 +99,16 @@ function renderCode(raw, chunkDefs) {
         }
       }
       continue;
+    }
+    if (s[i] === '{') {
+      const end = findBalancedBraces(s, i);
+      if (end !== -1) {
+        const id = `__WEB_COMMENT_${comments.length}__`;
+        comments.push(s.slice(i + 1, end));
+        codeWithPlaceholders += id;
+        i = end + 1;
+        continue;
+      }
     }
     codeWithPlaceholders += s[i];
     i++;
