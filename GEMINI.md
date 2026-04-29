@@ -37,6 +37,8 @@ The project provides both `npm` scripts and a `Makefile` for common tasks.
 | `make html` | Generates HTML versions of the WEB sources in `output/`. |
 | `make pdf` | Generates PDF versions using the traditional WEB toolchain. |
 | `make clean` | Removes build artifacts (`output/`, `.pdf`, `.tex`, etc.). |
+| `make server` | Runs the local web server to host the viewer. |
+| `make help` | Shows all available make targets and their descriptions. |
 | `npm run mcp` | Starts the MCP server for issue reporting. |
 
 ## MCP Server & Issue Reporting
